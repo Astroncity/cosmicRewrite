@@ -1,0 +1,6 @@
+include/raylib.h
+include/rlgl.h
+build/
+comp.sh
+stats.sh
+git/
