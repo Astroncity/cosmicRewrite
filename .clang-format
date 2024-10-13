@@ -1,0 +1,6 @@
+IndentWidth: 4
+PointerAlignment: Left
+AllowShortIfStatementsOnASingleLine: true
+ColumnLimit: 76
+BinPackArguments: true
+BinPackParameters: true
