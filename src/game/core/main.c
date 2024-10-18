@@ -12,7 +12,6 @@ const u32 screenHeight = 270;
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-
 #define MAG(v) sqrt(v.x* v.x + v.y * v.y)
 
 v2 mouse;
@@ -46,7 +45,7 @@ void drawScaledWindow(RenderTexture2D target, f32 sw, f32 sh, f32 scale) {
     DrawTexturePro(target.texture, rect1, rect2, (v2){0, 0}, 0.0f, WHITE);
 }
 
-typedef struct Sprite {
+typedef struct {
     Texture2D texture;
     int radius;
     bool drawSprite;
@@ -87,8 +86,6 @@ int main(void) {
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    Shader scanlines = LoadShader(0, "scanlines.frag.glsl");
-
     world = ecs_init();
     TransformImport();
     ECS_COMPONENT_DEFINE(world, Sprite);
@@ -121,9 +118,7 @@ int main(void) {
 
         BeginDrawing();
         ClearBackground(BLACK);
-        BeginShaderMode(scanlines);
         drawScaledWindow(target, screenWidth, screenHeight, scale);
-        EndShaderMode();
         EndDrawing();
     }
 
