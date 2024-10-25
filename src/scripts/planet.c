@@ -6,23 +6,26 @@
 
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max) {
     i32 step = max / len;
-    i32 steps[len];
+    ColorRamp r;
 
     for (usize i = 0; i < len - 1; i++) {
-        steps[i] = (i + 1) * step;
+        r.steps[i] = (i + 1) * step;
     }
-    steps[len - 1] = max;
-
-    // TEST:
     for (usize i = 0; i < len; i++) {
-        printf("%d\n", steps[i]);
+        r.colors[i] = colors[i];
     }
-
-    return (ColorRamp){len, colors, steps};
+    r.steps[len - 1] = max;
+    return r;
 }
 
 ColorRamp createColorRamp(i32* steps, Color* colors, usize len) {
-    return (ColorRamp){len, colors, steps};
+    ColorRamp r;
+    for (usize i = 0; i < len; i++) {
+        r.steps[i] = steps[i];
+        r.colors[i] = colors[i];
+    }
+    r.len = len;
+    return r;
 }
 
 // Function to interpolate between colors in the ColorRamp
@@ -33,8 +36,12 @@ Color getColorFromRamp(float t, ColorRamp ramp) {
     return ramp.colors[ramp.len - 1];
 }
 
+i32 tmpScale = 9;
 Image colorPerlin(usize res, ColorRamp ramp) {
-    Image noise = GenImagePerlinNoise(res, res, 0, 0, 9);
+    i32 s = GetRandomValue(-100, 100);
+
+    Image noise = GenImagePerlinNoise(res, res, s, s * 2, tmpScale);
+    tmpScale--;
     Color* pixels = LoadImageColors(noise);
     Image blank = GenImageColor(res, res, BLANK);
 
@@ -47,5 +54,6 @@ Image colorPerlin(usize res, ColorRamp ramp) {
 
     // Create a new image from colored pixels
     UnloadImageColors(pixels);
+    UnloadImage(noise);
     return blank;
 }

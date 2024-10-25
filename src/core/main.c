@@ -22,11 +22,7 @@ typedef struct {
 
 ECS_COMPONENT_DECLARE(Sprite);
 
-void render(ecs_world_t* world) {
-    ecs_query_t* q =
-        ecs_query(world, {.terms = {{.id = ecs_id(Position)},
-                                    {.id = ecs_id(Sprite), .inout = EcsIn}},
-                          .cache_kind = EcsQueryCacheAuto});
+void render(ecs_world_t* world, ecs_query_t* q) {
 
     ecs_iter_t it = ecs_query_iter(world, q);
 
@@ -64,8 +60,14 @@ int main(void) {
     ColorRamp testRamp =
         createColorRampAuto((Color[]){GREEN, RED, BLUE}, 3, 255);
 
-    Image noise = colorPerlin(64, testRamp);
+    Image noise = colorPerlin(256, testRamp);
+
     Texture2D tex = LoadTextureFromImage(noise);
+
+    ecs_query_t* q =
+        ecs_query(world, {.terms = {{.id = ecs_id(Position)},
+                                    {.id = ecs_id(Sprite), .inout = EcsIn}},
+                          .cache_kind = EcsQueryCacheAuto});
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();
@@ -78,12 +80,19 @@ int main(void) {
         BeginTextureMode(target);
         ClearBackground(BLACK);
 
-        render(world);
+        render(world, q);
         ecs_progress(world, GetFrameTime());
         time += GetFrameTime();
         DrawTexture(tex, 20, 20, WHITE);
 
         EndTextureMode();
+
+        if (IsKeyPressed(KEY_SPACE)) {
+            UnloadTexture(tex);
+            UnloadImage(noise);
+            noise = colorPerlin(256, testRamp);
+            tex = LoadTextureFromImage(noise);
+        }
 
         BeginDrawing();
         ClearBackground(BLACK);

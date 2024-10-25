@@ -1,10 +1,11 @@
 #pragma once
 #include "defs.h"
+#define MAX_COLORRAMP_STEPS 10
 
 typedef struct {
     usize len;
-    Color* colors;
-    i32* steps;
+    Color colors[MAX_COLORRAMP_STEPS];
+    i32 steps[MAX_COLORRAMP_STEPS];
 } ColorRamp;
 
 ColorRamp createColorRamp(i32* steps, Color* colors, usize len);
