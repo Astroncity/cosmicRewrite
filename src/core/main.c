@@ -57,12 +57,35 @@ int main(void) {
              .drawSprite = true});
     ecs_add_id(world, e, _controllable);
 
-    ColorRamp testRamp =
-        createColorRampAuto((Color[]){GREEN, RED, BLUE}, 3, 255);
+    // ColorRamp testRamp = createColorRampAuto(
+    //    (Color[]){GREEN, RED, BLUE, SKYBLUE, MAGENTA, YELLOW}, 6, 255);
 
-    Image noise = colorPerlin(256, testRamp);
+    ColorRamp terrainRamp = createColorRampAuto(
+        (Color[]){
+            (Color){0, 0, 139, 255},    // Deep Water (Royal Blue)
+            (Color){0, 191, 255, 255},  // Shallow Water (Sky Blue)
+            (Color){60, 179, 113, 255}, // Grasslands (Medium Sea Green)
+            (Color){124, 252, 0, 255},  // Lush Hills (Lawn Green)
+            (Color){205, 133, 63, 255}, // Rocky Mountains (Peru)
+            (Color){255, 255, 240, 255} // Snowy Peaks (Ivory White)
+        },
+        6, 255);
 
+    Image noiseSq = colorPerlin(PLANET_RES, terrainRamp);
+    Image noiseD = dither(0, -PLANET_RES / 8, noiseSq);
+    Image noise = cropToCircle(noiseD);
     Texture2D tex = LoadTextureFromImage(noise);
+
+    Color atc = (Color){7, 217, 255, 100};
+    const f32 atmScale = 1.05;
+
+    Image atmS =
+        GenImageColor(PLANET_RES * atmScale, PLANET_RES * atmScale, atc);
+    Image atmD = dither(0, -PLANET_RES / 8, atmS);
+    Image atmI = cropToCircle(atmD);
+    Texture2D atm = LoadTextureFromImage(atmI);
+
+    i32 atmo = (PLANET_RES * atmScale - PLANET_RES) / 2;
 
     ecs_query_t* q =
         ecs_query(world, {.terms = {{.id = ecs_id(Position)},
@@ -83,14 +106,19 @@ int main(void) {
         render(world, q);
         ecs_progress(world, GetFrameTime());
         time += GetFrameTime();
-        DrawTexture(tex, 20, 20, WHITE);
+        DrawTexture(tex, 150, 20, WHITE);
+        DrawTexture(atm, 150 - atmo, 20 - atmo, WHITE);
 
         EndTextureMode();
 
         if (IsKeyPressed(KEY_SPACE)) {
             UnloadTexture(tex);
             UnloadImage(noise);
-            noise = colorPerlin(256, testRamp);
+            UnloadImage(noiseSq);
+            UnloadImage(noiseD);
+            noiseSq = colorPerlin(PLANET_RES, terrainRamp);
+            noiseD = dither(0, -PLANET_RES / 8, noiseSq);
+            noise = cropToCircle(noiseD);
             tex = LoadTextureFromImage(noise);
         }
 

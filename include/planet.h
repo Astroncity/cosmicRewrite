@@ -1,6 +1,7 @@
 #pragma once
 #include "defs.h"
 #define MAX_COLORRAMP_STEPS 10
+#define PLANET_RES 256
 
 typedef struct {
     usize len;
@@ -11,3 +12,6 @@ typedef struct {
 ColorRamp createColorRamp(i32* steps, Color* colors, usize len);
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max);
 Image colorPerlin(usize res, ColorRamp ramp);
+
+Image dither(i32 circleOffsetx, i32 circleOffsety, Image m);
+Image cropToCircle(Image img);
