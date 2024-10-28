@@ -1,7 +1,7 @@
 #pragma once
 #include "defs.h"
 #define MAX_COLORRAMP_STEPS 10
-#define PLANET_RES 256
+#define PLANET_RES 128
 
 typedef struct {
     usize len;
@@ -15,3 +15,14 @@ Image colorPerlin(usize res, ColorRamp ramp);
 
 Image dither(i32 circleOffsetx, i32 circleOffsety, Image m);
 Image cropToCircle(Image img);
+Color* generateHarmonizedColors(Color baseColor, int colorCount,
+                                int hueShift, float saturationFactor,
+                                float brightnessFactor);
+
+void planetTest();
+Color getRandomColor();
+
+void drawColorRamp(ColorRamp* ramp);
+Color brightenColor(Color c);
+
+Color averageRamp(ColorRamp* ramp);

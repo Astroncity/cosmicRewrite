@@ -45,6 +45,8 @@ int main(void) {
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
+    planetTest();
+
     world = ecs_init();
     TransformImport();
     ECS_COMPONENT_DEFINE(world, Sprite);
@@ -71,13 +73,27 @@ int main(void) {
         },
         6, 255);
 
+    Color* cls = generateHarmonizedColors(brightenColor(getRandomColor()),
+                                          10, 45, 1, 1);
+    Color avg = brightenColor(averageRamp(&terrainRamp));
+    printf("Color avg: %d, %d, %d %d\n", avg.r, avg.g, avg.b, avg.a);
+    printf("TerrainRamp len %zu\n", terrainRamp.len);
+    for (i32 i = 0; i < 10; i++) {
+        printf("Color %d: %d, %d, %d\n", i, cls[i].r, cls[i].g, cls[i].b);
+        terrainRamp.colors[i] = cls[i];
+    }
+
     Image noiseSq = colorPerlin(PLANET_RES, terrainRamp);
     Image noiseD = dither(0, -PLANET_RES / 8, noiseSq);
     Image noise = cropToCircle(noiseD);
     Texture2D tex = LoadTextureFromImage(noise);
 
-    Color atc = (Color){7, 217, 255, 100};
+    // Color atc = (Color){7, 217, 255, 150};
+    Color atc = cls[GetRandomValue(0, 10 - 1)];
+    atc.a = GetRandomValue(130, 220);
     const f32 atmScale = 1.05;
+    free(cls);
+    cls = NULL;
 
     Image atmS =
         GenImageColor(PLANET_RES * atmScale, PLANET_RES * atmScale, atc);
@@ -85,7 +101,7 @@ int main(void) {
     Image atmI = cropToCircle(atmD);
     Texture2D atm = LoadTextureFromImage(atmI);
 
-    i32 atmo = (PLANET_RES * atmScale - PLANET_RES) / 2;
+    i32 atmo = (PLANET_RES * atmScale - PLANET_RES);
 
     ecs_query_t* q =
         ecs_query(world, {.terms = {{.id = ecs_id(Position)},
@@ -106,8 +122,11 @@ int main(void) {
         render(world, q);
         ecs_progress(world, GetFrameTime());
         time += GetFrameTime();
-        DrawTexture(tex, 150, 20, WHITE);
-        DrawTexture(atm, 150 - atmo, 20 - atmo, WHITE);
+        DrawTextureEx(tex, (v2){150, 20}, 0, 2, WHITE);
+        DrawTextureEx(atm, (v2){150 - atmo, 20 - atmo}, 0, 2, WHITE);
+        terrainRamp.len = 10;
+        drawColorRamp(&terrainRamp);
+        terrainRamp.len = 6;
 
         EndTextureMode();
 
