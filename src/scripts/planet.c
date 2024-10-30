@@ -1,11 +1,17 @@
 #include "planet.h"
 #include "raylib.h"
+#include "state.h"
+#include "transform.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 
 #define DARKEN(c, f) ((Color){(c.r * f), (c.g * f), (c.b * f), (c.a)})
 #define DIST(x1, y1, x2, y2) (sqrtf(powf(x1 - x2, 2) + powf(y1 - y2, 2)))
+
+ECS_COMPONENT_DECLARE(Planet);
+ECS_COMPONENT_DECLARE(Clickable);
+ECS_COMPONENT_DECLARE(Renderable);
 
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max) {
     i32 step = max / len;
@@ -249,7 +255,7 @@ void printTestRes(const char* txt, bool passed) {
     }
 }
 
-Color averageRamp(ColorRamp* ramp) {
+Color averageRamp(const ColorRamp* ramp) {
     i32 rs = 0;
     i32 gs = 0;
     i32 bs = 0;
@@ -264,7 +270,7 @@ Color averageRamp(ColorRamp* ramp) {
     return (Color){rs / ramp->len, gs / ramp->len, bs / ramp->len, 255};
 }
 
-void drawColorRamp(ColorRamp* ramp) {
+void drawColorRamp(const ColorRamp* ramp) {
     for (usize i = 0; i < ramp->len; i++) {
         Color c = ramp->colors[i];
         DrawRectangle(i * 10 + 10, 0, 10, 10, c);
@@ -295,4 +301,70 @@ Color brightenColor(Color c) {
 Color getRandomColor() {
     return (Color){GetRandomValue(0, 255), GetRandomValue(0, 255),
                    GetRandomValue(0, 255), 255};
+}
+
+void planetRender(ecs_entity_t e) {
+    const Planet* p = ecs_get(world, e, Planet);
+    const Position* pos = ecs_get(world, e, Position);
+
+    DrawTextureEx(p->land, (v2){pos->x, pos->y}, 0, 2, WHITE);
+    DrawTextureEx(
+        p->atmosphere,
+        (v2){pos->x - p->atmosphereOffset, pos->y - p->atmosphereOffset}, 0,
+        2, WHITE);
+    drawColorRamp(&p->palette);
+}
+
+ecs_entity_t createPlanet(v2 pos) {
+    Color* cls = generateHarmonizedColors(brightenColor(getRandomColor()),
+                                          6, 25, 1, 1);
+    ColorRamp ramp = createColorRampAuto(cls, 6, 255);
+
+    Color atmColor = brightenColor(averageRamp(&ramp));
+    atmColor.a = GetRandomValue(100, 200); // atmosphere density
+
+    // terrain noise
+    Image noiseSq = colorPerlin(PLANET_RES, ramp);
+    Image noiseShadow = dither(0, -PLANET_RES / 8, noiseSq);
+    Image noise = cropToCircle(noiseShadow);
+    Texture2D tex = LoadTextureFromImage(noise);
+
+    // atmosphere
+    Image atmSolid = GenImageColor(PLANET_RES * ATMOSPHERE_SCALE,
+                                   PLANET_RES * ATMOSPHERE_SCALE, atmColor);
+    Image atmShadow = dither(0, -PLANET_RES / 8, atmSolid);
+    Image atmC = cropToCircle(atmShadow);
+    Texture2D atm = LoadTextureFromImage(atmC);
+
+    i32 atmosphereOffset = (PLANET_RES * ATMOSPHERE_SCALE - PLANET_RES);
+
+    ecs_entity_t e = ecs_entity(world, {.name = "planet"});
+    ecs_set(world, e, Planet,
+            {.land = tex,
+             .atmosphere = atm,
+             .palette = ramp,
+             .atmosphereOffset = atmosphereOffset});
+
+    ecs_set(world, e, Position, {pos.x, pos.y});
+    ecs_set(world, e, Renderable, {planetRender});
+
+    // cleanup
+    UnloadImage(noiseSq);
+    UnloadImage(noiseShadow);
+    UnloadImage(noise);
+    UnloadImage(atmSolid);
+    UnloadImage(atmShadow);
+    UnloadImage(atmC);
+    free(cls);
+    cls = NULL;
+
+    return e;
+}
+
+void PlanetModuleImport() {
+    ECS_MODULE(world, PlanetModule);
+
+    ECS_COMPONENT_DEFINE(world, Planet);
+    ECS_COMPONENT_DEFINE(world, Clickable);
+    ECS_COMPONENT_DEFINE(world, Renderable);
 }

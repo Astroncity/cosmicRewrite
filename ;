@@ -38,13 +38,12 @@ int main(void) {
     setWindowFlags();
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+    PlanetImport();
 
     planetTest();
 
     world = ecs_init();
-    ECS_IMPORT(world, Transform);
-    ECS_IMPORT(world, PlanetModule);
-    PlanetModuleImport();
+    TransformImport();
     ECS_COMPONENT_DEFINE(world, Renderable);
     ecs_entity_t e = ecs_entity(world, {.name = "test"});
     ecs_set(world, e, Position, {50, 50});
@@ -59,7 +58,7 @@ int main(void) {
                 .cache_kind = EcsQueryCacheAuto});
 
     // planet test
-    createPlanet((v2){200, 20});
+    createPlanet();
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();
