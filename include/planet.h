@@ -1,6 +1,7 @@
 #pragma once
 #include "defs.h"
 #include "flecs.h"
+#include "transform.h"
 
 #define MAX_COLORRAMP_STEPS 10
 #define PLANET_RES 128
@@ -11,7 +12,7 @@
 extern ECS_COMPONENT_DECLARE(Planet);
 extern ECS_COMPONENT_DECLARE(Renderable);
 extern ECS_COMPONENT_DECLARE(Clickable);
-// extern ECS_SYSTEM_DECLARE(HandleClickables);
+extern ECS_SYSTEM_DECLARE(HandleClickables);
 
 typedef struct {
     usize len;
@@ -26,7 +27,8 @@ typedef struct {
 typedef struct {
     void (*onClick)(ecs_entity_t e);
     void (*onHover)(ecs_entity_t e);
-    Rect hitbox;
+    void (*hoverReset)(ecs_entity_t e);
+    v2 hitbox;
 } Clickable;
 
 typedef struct {

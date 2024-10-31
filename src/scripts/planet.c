@@ -1,7 +1,6 @@
 #include "planet.h"
 #include "raylib.h"
 #include "state.h"
-#include "transform.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -13,7 +12,7 @@
 ECS_COMPONENT_DECLARE(Planet);
 ECS_COMPONENT_DECLARE(Clickable);
 ECS_COMPONENT_DECLARE(Renderable);
-// ECS_SYSTEM_DECLARE(HandleClickables);
+ECS_SYSTEM_DECLARE(HandleClickables);
 
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max) {
     i32 step = max / len;
@@ -357,6 +356,15 @@ char* getPlanetName() {
 }
 
 void onPlanetHover(ecs_entity_t e) {
+    const Planet* p = ecs_get(world, e, Planet);
+    const Position* pos = ecs_get(world, e, Position);
+
+    v2 center = {pos->x + PLANET_RES / 2.0, pos->y + PLANET_RES / 2.0};
+    f32 rad = (PLANET_RES * ATMOSPHERE_SCALE * p->scale) / 2 + 1;
+    DrawCircleLines(center.x, center.y, rad, GRUV_BLUE);
+}
+
+void onPlanetExitHover(ecs_entity_t e) {
     (void)e;
     return;
 }
@@ -400,11 +408,17 @@ ecs_entity_t createPlanet(v2 pos) {
              .atmosphere = atm,
              .palette = ramp,
              .atmosphereOffset = atmosphereOffset,
-             .avg = atmColor});
+             .avg = atmColor,
+             .scale = 1});
 
     strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
     ecs_set(world, e, Position, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {planetRender});
+    ecs_set(world, e, Clickable,
+            {onPlanetHover,
+             onPlanetHover,
+             onPlanetExitHover,
+             {PLANET_RES, PLANET_RES}});
 
     // cleanup
     UnloadImage(noiseSq);
@@ -421,24 +435,30 @@ ecs_entity_t createPlanet(v2 pos) {
 
 void HandleClickables(ecs_iter_t* it) {
     const Clickable* c = ecs_field(it, Clickable, 1);
+    const Position* p = ecs_field(it, Position, 0);
+
     for (int i = 0; i < it->count; i++) {
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            if (CheckCollisionPointRec(*mouse, c[i].hitbox)) {
+        Rect box = {p[i].x, p[i].y, c[i].hitbox.x, c[i].hitbox.y};
+
+        if (CheckCollisionPointRec(*mouse, box)) {
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                 c[i].onClick(it->entities[i]);
-            }
-        } else {
-            if (CheckCollisionPointRec(*mouse, c[i].hitbox)) {
+            } else {
                 c[i].onHover(it->entities[i]);
             }
+        } else {
+            c[i].hoverReset(it->entities[i]);
         }
     }
 }
 
 void PlanetModuleImport(ecs_world_t* world) {
+    ECS_IMPORT(world, TransformModule);
     ECS_MODULE(world, PlanetModule);
 
     ECS_COMPONENT_DEFINE(world, Planet);
-    // ECS_COMPONENT_DEFINE(world, Clickable);
+    ECS_COMPONENT_DEFINE(world, Clickable);
     ECS_COMPONENT_DEFINE(world, Renderable);
-    // ECS_SYSTEM_DEFINE(world, HandleClickables, EcsOnUpdate, Clickable);
+    ECS_SYSTEM_DEFINE(world, HandleClickables, EcsOnUpdate,
+                      transform.module.Position, Clickable);
 }
