@@ -1,9 +1,17 @@
 #pragma once
 #include "defs.h"
 #include "flecs.h"
+
 #define MAX_COLORRAMP_STEPS 10
 #define PLANET_RES 128
 #define ATMOSPHERE_SCALE 1.05
+#define PLANET_NAME_MAXLEN 32
+#define PLANET_NAME_SIZE 22
+
+extern ECS_COMPONENT_DECLARE(Planet);
+extern ECS_COMPONENT_DECLARE(Renderable);
+extern ECS_COMPONENT_DECLARE(Clickable);
+// extern ECS_SYSTEM_DECLARE(HandleClickables);
 
 typedef struct {
     usize len;
@@ -15,20 +23,21 @@ typedef struct {
     void (*render)(ecs_entity_t e);
 } Renderable;
 
-extern ECS_COMPONENT_DECLARE(Renderable);
-
 typedef struct {
-    void (*callback)(ecs_entity_t);
+    void (*onClick)(ecs_entity_t e);
+    void (*onHover)(ecs_entity_t e);
+    Rect hitbox;
 } Clickable;
-extern ECS_COMPONENT_DECLARE(Clickable);
 
 typedef struct {
     Texture2D land;
     Texture2D atmosphere;
     ColorRamp palette;
+    Color avg;
     i32 atmosphereOffset;
+    f32 scale;
+    char name[PLANET_NAME_MAXLEN];
 } Planet;
-extern ECS_COMPONENT_DECLARE(Planet);
 
 ColorRamp createColorRamp(i32* steps, Color* colors, usize len);
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max);
@@ -49,4 +58,4 @@ Color brightenColor(Color c);
 Color averageRamp(const ColorRamp* ramp);
 ecs_entity_t createPlanet(v2 pos);
 
-void PlanetModuleImport();
+void PlanetModuleImport(ecs_world_t* world);

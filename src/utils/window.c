@@ -7,11 +7,9 @@ v2 v2Clamp(v2 vec, v2 min, v2 max) {
 }
 
 v2 getScreenMousePos(v2* mouse, f32 scale, i32 sw, i32 sh) {
-    v2 mouseOLD = GetMousePosition();
-    mouse->x =
-        (mouseOLD.x - (GetScreenWidth() - (sw * scale)) * 0.5f) / scale;
-    mouse->y =
-        (mouseOLD.y - (GetScreenHeight() - (sh * scale)) * 0.5f) / scale;
+    v2 mOld = GetMousePosition();
+    mouse->x = (mOld.x - (GetScreenWidth() - (sw * scale)) * 0.5f) / scale;
+    mouse->y = (mOld.y - (GetScreenHeight() - (sh * scale)) * 0.5f) / scale;
     *mouse = v2Clamp(*mouse, (v2){0, 0}, (v2){(f32)sw, (f32)sh});
 
     return *mouse;

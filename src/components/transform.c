@@ -1,6 +1,5 @@
 #include "transform.h"
-#include "state.h"
-#include <raylib.h>
+#include "raylib.h"
 
 ECS_COMPONENT_DECLARE(Position);
 ECS_COMPONENT_DECLARE(Velocity);
@@ -43,8 +42,8 @@ void Controller(ecs_iter_t* it) {
     }
 }
 
-void TransformImport() {
-    ECS_MODULE(world, Transform);
+void TransformModuleImport(ecs_world_t* world) {
+    ECS_MODULE(world, TransformModule);
 
     ECS_COMPONENT_DEFINE(world, Position);
     ECS_COMPONENT_DEFINE(world, Velocity);

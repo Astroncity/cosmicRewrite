@@ -8,10 +8,12 @@
 
 #define DARKEN(c, f) ((Color){(c.r * f), (c.g * f), (c.b * f), (c.a)})
 #define DIST(x1, y1, x2, y2) (sqrtf(powf(x1 - x2, 2) + powf(y1 - y2, 2)))
+#define PLANET_NAMES_PATH "assets/planet_names.txt"
 
 ECS_COMPONENT_DECLARE(Planet);
 ECS_COMPONENT_DECLARE(Clickable);
 ECS_COMPONENT_DECLARE(Renderable);
+// ECS_SYSTEM_DECLARE(HandleClickables);
 
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max) {
     i32 step = max / len;
@@ -303,16 +305,60 @@ Color getRandomColor() {
                    GetRandomValue(0, 255), 255};
 }
 
+void drawPlanetName(const Color avg, const v2* pos, const char* name) {
+    const i32 spacing = 1;
+    i32 len = MeasureTextEx(globalFont, name, PLANET_NAME_SIZE, spacing).x;
+    v2 center = {pos->x + PLANET_RES / 2.0, pos->y + PLANET_RES / 2.0};
+    v2 textPos = {center.x - len / 2.0, center.y - PLANET_RES / 2.0 - 20};
+
+    DrawTextEx(globalFont, name, textPos, PLANET_NAME_SIZE, spacing, avg);
+}
+
 void planetRender(ecs_entity_t e) {
     const Planet* p = ecs_get(world, e, Planet);
     const Position* pos = ecs_get(world, e, Position);
 
-    DrawTextureEx(p->land, (v2){pos->x, pos->y}, 0, 2, WHITE);
-    DrawTextureEx(
-        p->atmosphere,
-        (v2){pos->x - p->atmosphereOffset, pos->y - p->atmosphereOffset}, 0,
-        2, WHITE);
+    DrawTextureEx(p->land, (v2){pos->x, pos->y}, 0, p->scale, WHITE);
+    DrawTextureEx(p->atmosphere,
+                  (v2){pos->x - p->atmosphereOffset * (p->scale / 2.0),
+                       pos->y - p->atmosphereOffset * (p->scale / 2.0)},
+                  0, p->scale, WHITE);
     drawColorRamp(&p->palette);
+    drawPlanetName(p->avg, &(v2){pos->x, pos->y}, p->name);
+}
+
+char* getPlanetName() {
+    static long pos = 0;
+    FILE* file = fopen(PLANET_NAMES_PATH, "r");
+    if (file == NULL) {
+        perror("Error reading file");
+        return NULL;
+    }
+
+    char* name = malloc(sizeof(char) * PLANET_NAME_MAXLEN);
+    if (name == NULL) {
+        perror("Error allocating memory");
+        fclose(file);
+        return NULL;
+    }
+
+    fseek(file, pos, SEEK_SET); // Go to the last known position
+    if (fgets(name, PLANET_NAME_MAXLEN, file) != NULL) {
+        printf("%s\n", name);
+        pos = ftell(file); // Update position for the next call
+    } else {
+        perror("Error reading name or end of file reached");
+        free(name);
+        name = NULL;
+    }
+
+    fclose(file); // Close the file each time
+    return name;
+}
+
+void onPlanetHover(ecs_entity_t e) {
+    (void)e;
+    return;
 }
 
 ecs_entity_t createPlanet(v2 pos) {
@@ -338,13 +384,25 @@ ecs_entity_t createPlanet(v2 pos) {
 
     i32 atmosphereOffset = (PLANET_RES * ATMOSPHERE_SCALE - PLANET_RES);
 
-    ecs_entity_t e = ecs_entity(world, {.name = "planet"});
+    // name gen
+    char* name = getPlanetName();
+    if (name == NULL) {
+        name = "NAME ERROR";
+    }
+
+    if (!strcmp(name, "NAME ERROR")) {
+        free(name);
+    }
+
+    ecs_entity_t e = ecs_new(world);
     ecs_set(world, e, Planet,
             {.land = tex,
              .atmosphere = atm,
              .palette = ramp,
-             .atmosphereOffset = atmosphereOffset});
+             .atmosphereOffset = atmosphereOffset,
+             .avg = atmColor});
 
+    strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
     ecs_set(world, e, Position, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {planetRender});
 
@@ -361,10 +419,26 @@ ecs_entity_t createPlanet(v2 pos) {
     return e;
 }
 
-void PlanetModuleImport() {
+void HandleClickables(ecs_iter_t* it) {
+    const Clickable* c = ecs_field(it, Clickable, 1);
+    for (int i = 0; i < it->count; i++) {
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(*mouse, c[i].hitbox)) {
+                c[i].onClick(it->entities[i]);
+            }
+        } else {
+            if (CheckCollisionPointRec(*mouse, c[i].hitbox)) {
+                c[i].onHover(it->entities[i]);
+            }
+        }
+    }
+}
+
+void PlanetModuleImport(ecs_world_t* world) {
     ECS_MODULE(world, PlanetModule);
 
     ECS_COMPONENT_DEFINE(world, Planet);
-    ECS_COMPONENT_DEFINE(world, Clickable);
+    // ECS_COMPONENT_DEFINE(world, Clickable);
     ECS_COMPONENT_DEFINE(world, Renderable);
+    // ECS_SYSTEM_DEFINE(world, HandleClickables, EcsOnUpdate, Clickable);
 }

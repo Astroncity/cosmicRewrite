@@ -8,8 +8,9 @@
 
 ecs_world_t* world;
 
-v2 mouse;
+v2* mouse;
 f32 time;
+Font globalFont;
 
 const u32 screenWidth = 480;
 const u32 screenHeight = 270;
@@ -39,17 +40,19 @@ int main(void) {
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
+    globalFont = LoadFont("assets/fonts/spaceMono.ttf");
+
     planetTest();
 
     world = ecs_init();
-    ECS_IMPORT(world, Transform);
+    ECS_IMPORT(world, TransformModule);
     ECS_IMPORT(world, PlanetModule);
-    PlanetModuleImport();
-    ECS_COMPONENT_DEFINE(world, Renderable);
+
     ecs_entity_t e = ecs_entity(world, {.name = "test"});
     ecs_set(world, e, Position, {50, 50});
     ecs_set(world, e, Velocity, {50, 50});
     ecs_set(world, e, Renderable, {renderPlayer});
+
     playerTex = LoadTexture("assets/images/player/playerDown.png");
     ecs_add_id(world, e, _controllable);
 
@@ -59,11 +62,13 @@ int main(void) {
                 .cache_kind = EcsQueryCacheAuto});
 
     // planet test
-    createPlanet((v2){200, 20});
+    createPlanet((v2){70, 70});
+    createPlanet((v2){70 + PLANET_RES + 20, 70});
+    mouse = malloc(sizeof(v2));
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();
-        mouse = getScreenMousePos(&mouse, scale, screenWidth, screenHeight);
+        *mouse = getScreenMousePos(mouse, scale, screenWidth, screenHeight);
 
         if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE)) {
             printf("pressed middle mouse button\n");
