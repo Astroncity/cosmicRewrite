@@ -43,7 +43,7 @@ typedef struct {
 
 ColorRamp createColorRamp(i32* steps, Color* colors, usize len);
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max);
-Image colorPerlin(usize res, ColorRamp ramp);
+Image colorPerlin(usize res, ColorRamp ramp, f32 scale);
 
 Image dither(i32 circleOffsetx, i32 circleOffsety, Image m);
 Image cropToCircle(Image img);
@@ -58,6 +58,8 @@ void drawColorRamp(const ColorRamp* ramp);
 Color brightenColor(Color c);
 
 Color averageRamp(const ColorRamp* ramp);
-ecs_entity_t createPlanet(v2 pos);
+ecs_entity_t createPlanet(v2 pos, f32 scale);
 
 void PlanetModuleImport(ecs_world_t* world);
+
+Texture2D genCosmicBackground();

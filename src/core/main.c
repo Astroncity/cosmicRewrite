@@ -61,10 +61,14 @@ int main(void) {
                           {.id = ecs_id(Renderable), .inout = EcsIn}},
                 .cache_kind = EcsQueryCacheAuto});
 
-    // planet test
-    createPlanet((v2){70, 70});
-    createPlanet((v2){70 + PLANET_RES + 20, 70});
     mouse = malloc(sizeof(v2));
+    const f32 scale = 1.5;
+
+    createPlanet((v2){screenWidth / 2.0 - PLANET_RES * scale / 2,
+                      screenHeight / 2.0 - PLANET_RES * scale / 2 + 20},
+                 scale);
+
+    Texture2D background = genCosmicBackground();
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();
@@ -76,6 +80,7 @@ int main(void) {
 
         BeginTextureMode(target);
         ClearBackground(BLACK);
+        DrawTextureEx(background, (v2){0, 0}, 0, 1, WHITE);
 
         render(world, q);
         ecs_progress(world, GetFrameTime());

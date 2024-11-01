@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <time.h>
 
 #define DARKEN(c, f) ((Color){(c.r * f), (c.g * f), (c.b * f), (c.a)})
 #define DIST(x1, y1, x2, y2) (sqrtf(powf(x1 - x2, 2) + powf(y1 - y2, 2)))
@@ -215,12 +216,29 @@ Color* generateHarmonizedColors(Color baseColor, int colorCount,
     return colors;
 }
 
-Image colorPerlin(usize res, ColorRamp ramp) {
+/**
+ * Generates a Perlin noise-based image with colors applied from a
+ * ColorRamp.
+ *
+ * @param res          The resolution of the generated image (width and
+ * height).
+ * @param ramp         The ColorRamp to use for coloring the Perlin noise.
+ * @param customScale  The scale for Perlin noise; set to -1 to use the
+ * default scale.
+ *
+ * @return An Image object generated based on the provided resolution, color
+ * ramp, and scale.
+ */
+Image colorPerlin(usize res, ColorRamp ramp, f32 customScale) {
     i32 s = GetRandomValue(-100, 100);
     i32 s2 = GetRandomValue(-100, 100);
 
     f32 scaleBase = 5;
     scaleBase += GetRandomValue(-250, 500) / 100.0;
+
+    if (customScale != -1) {
+        scaleBase = customScale;
+    }
 
     Image noise1 = GenImagePerlinNoise(res, res, s, s * 2, scaleBase);
     Image noise2 = GenImagePerlinNoise(res, res, s2, s2 * 2, scaleBase * 2);
@@ -304,11 +322,14 @@ Color getRandomColor() {
                    GetRandomValue(0, 255), 255};
 }
 
-void drawPlanetName(const Color avg, const v2* pos, const char* name) {
+void drawPlanetName(const Color avg, const v2* pos, const char* name,
+                    f32 scale) {
     const i32 spacing = 1;
     i32 len = MeasureTextEx(globalFont, name, PLANET_NAME_SIZE, spacing).x;
-    v2 center = {pos->x + PLANET_RES / 2.0, pos->y + PLANET_RES / 2.0};
-    v2 textPos = {center.x - len / 2.0, center.y - PLANET_RES / 2.0 - 20};
+    v2 center = {pos->x + PLANET_RES * scale / 2.0,
+                 pos->y + PLANET_RES * scale / 2.0};
+    v2 textPos = {center.x - len / 2.0,
+                  center.y - PLANET_RES * scale / 2.0 - 30};
 
     DrawTextEx(globalFont, name, textPos, PLANET_NAME_SIZE, spacing, avg);
 }
@@ -323,7 +344,7 @@ void planetRender(ecs_entity_t e) {
                        pos->y - p->atmosphereOffset * (p->scale / 2.0)},
                   0, p->scale, WHITE);
     drawColorRamp(&p->palette);
-    drawPlanetName(p->avg, &(v2){pos->x, pos->y}, p->name);
+    drawPlanetName(p->avg, &(v2){pos->x, pos->y}, p->name, p->scale);
 }
 
 char* getPlanetName() {
@@ -359,7 +380,8 @@ void onPlanetHover(ecs_entity_t e) {
     const Planet* p = ecs_get(world, e, Planet);
     const Position* pos = ecs_get(world, e, Position);
 
-    v2 center = {pos->x + PLANET_RES / 2.0, pos->y + PLANET_RES / 2.0};
+    v2 center = {pos->x + PLANET_RES * p->scale / 2.0,
+                 pos->y + PLANET_RES * p->scale / 2.0};
     f32 rad = (PLANET_RES * ATMOSPHERE_SCALE * p->scale) / 2 + 1;
     DrawCircleLines(center.x, center.y, rad, GRUV_BLUE);
 }
@@ -369,7 +391,7 @@ void onPlanetExitHover(ecs_entity_t e) {
     return;
 }
 
-ecs_entity_t createPlanet(v2 pos) {
+ecs_entity_t createPlanet(v2 pos, f32 scale) {
     Color* cls = generateHarmonizedColors(brightenColor(getRandomColor()),
                                           6, 25, 1, 1);
     ColorRamp ramp = createColorRampAuto(cls, 6, 255);
@@ -378,7 +400,7 @@ ecs_entity_t createPlanet(v2 pos) {
     atmColor.a = GetRandomValue(100, 200); // atmosphere density
 
     // terrain noise
-    Image noiseSq = colorPerlin(PLANET_RES, ramp);
+    Image noiseSq = colorPerlin(PLANET_RES, ramp, -1);
     Image noiseShadow = dither(0, -PLANET_RES / 8, noiseSq);
     Image noise = cropToCircle(noiseShadow);
     Texture2D tex = LoadTextureFromImage(noise);
@@ -409,7 +431,7 @@ ecs_entity_t createPlanet(v2 pos) {
              .palette = ramp,
              .atmosphereOffset = atmosphereOffset,
              .avg = atmColor,
-             .scale = 1});
+             .scale = scale});
 
     strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
     ecs_set(world, e, Position, {pos.x, pos.y});
@@ -418,7 +440,7 @@ ecs_entity_t createPlanet(v2 pos) {
             {onPlanetHover,
              onPlanetHover,
              onPlanetExitHover,
-             {PLANET_RES, PLANET_RES}});
+             {PLANET_RES * scale, PLANET_RES * scale}});
 
     // cleanup
     UnloadImage(noiseSq);
@@ -450,6 +472,21 @@ void HandleClickables(ecs_iter_t* it) {
             c[i].hoverReset(it->entities[i]);
         }
     }
+}
+
+Texture2D genCosmicBackground() {
+    ColorRamp cosmicRamp = createColorRampAuto(
+        (Color[]){
+            (Color){2, 2, 5, 255},    // Deep Space (Almost Black)
+            (Color){8, 8, 20, 255},   // Subtle Nebula Glow (Very Dark Blue)
+            (Color){15, 10, 20, 255}, // Faint Star Glow (Dark Purple)
+            (Color){6, 11, 14, 255},  // Dim Nebula (Muted Violet)
+            (Color){18, 10, 2, 255},  // Faded Crimson Star (Dark Crimson)
+            (Color){2, 2, 9, 255} // Subdued Starlight (Soft Grayish Gold)
+        },
+        6, 255);
+    Image colored = colorPerlin(screenWidth, cosmicRamp, 30);
+    return LoadTextureFromImage(colored);
 }
 
 void PlanetModuleImport(ecs_world_t* world) {
