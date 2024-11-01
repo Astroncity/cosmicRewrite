@@ -31,7 +31,7 @@ void render(ecs_world_t* world, ecs_query_t* q) {
 // TEST:
 Texture2D playerTex;
 void renderPlayer(ecs_entity_t e) {
-    const Position* pos = ecs_get(world, e, Position);
+    const position_c* pos = ecs_get(world, e, position_c);
     DrawTexture(playerTex, pos->x, pos->y, WHITE);
 }
 
@@ -49,15 +49,15 @@ int main(void) {
     ECS_IMPORT(world, PlanetModule);
 
     ecs_entity_t e = ecs_entity(world, {.name = "test"});
-    ecs_set(world, e, Position, {50, 50});
-    ecs_set(world, e, Velocity, {50, 50});
+    ecs_set(world, e, position_c, {50, 50});
+    ecs_set(world, e, velocity_c, {50, 50});
     ecs_set(world, e, Renderable, {renderPlayer});
 
     playerTex = LoadTexture("assets/images/player/playerDown.png");
     ecs_add_id(world, e, _controllable);
 
     ecs_query_t* q = ecs_query(
-        world, {.terms = {{.id = ecs_id(Position)},
+        world, {.terms = {{.id = ecs_id(position_c)},
                           {.id = ecs_id(Renderable), .inout = EcsIn}},
                 .cache_kind = EcsQueryCacheAuto});
 

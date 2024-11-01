@@ -336,7 +336,7 @@ void drawPlanetName(const Color avg, const v2* pos, const char* name,
 
 void planetRender(ecs_entity_t e) {
     const Planet* p = ecs_get(world, e, Planet);
-    const Position* pos = ecs_get(world, e, Position);
+    const position_c* pos = ecs_get(world, e, position_c);
 
     DrawTextureEx(p->land, (v2){pos->x, pos->y}, 0, p->scale, WHITE);
     DrawTextureEx(p->atmosphere,
@@ -378,7 +378,7 @@ char* getPlanetName() {
 
 void onPlanetHover(ecs_entity_t e) {
     const Planet* p = ecs_get(world, e, Planet);
-    const Position* pos = ecs_get(world, e, Position);
+    const position_c* pos = ecs_get(world, e, position_c);
 
     v2 center = {pos->x + PLANET_RES * p->scale / 2.0,
                  pos->y + PLANET_RES * p->scale / 2.0};
@@ -434,7 +434,7 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
              .scale = scale});
 
     strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
-    ecs_set(world, e, Position, {pos.x, pos.y});
+    ecs_set(world, e, position_c, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {planetRender});
     ecs_set(world, e, Clickable,
             {onPlanetHover,
@@ -457,7 +457,7 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
 
 void HandleClickables(ecs_iter_t* it) {
     const Clickable* c = ecs_field(it, Clickable, 1);
-    const Position* p = ecs_field(it, Position, 0);
+    const position_c* p = ecs_field(it, position_c, 0);
 
     for (int i = 0; i < it->count; i++) {
         Rect box = {p[i].x, p[i].y, c[i].hitbox.x, c[i].hitbox.y};
@@ -497,5 +497,5 @@ void PlanetModuleImport(ecs_world_t* world) {
     ECS_COMPONENT_DEFINE(world, Clickable);
     ECS_COMPONENT_DEFINE(world, Renderable);
     ECS_SYSTEM_DEFINE(world, HandleClickables, EcsOnUpdate,
-                      transform.module.Position, Clickable);
+                      transform.module.position_c, Clickable);
 }

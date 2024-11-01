@@ -1,16 +1,16 @@
 #include "transform.h"
 #include "raylib.h"
 
-ECS_COMPONENT_DECLARE(Position);
-ECS_COMPONENT_DECLARE(Velocity);
+ECS_COMPONENT_DECLARE(position_c);
+ECS_COMPONENT_DECLARE(velocity_c);
 
 ECS_SYSTEM_DECLARE(Move);
 ECS_SYSTEM_DECLARE(Controller);
 ECS_TAG_DECLARE(_controllable);
 
 void Move(ecs_iter_t* it) {
-    Position* p = ecs_field(it, Position, 0);
-    const Velocity* v = ecs_field(it, Velocity, 1);
+    position_c* p = ecs_field(it, position_c, 0);
+    const velocity_c* v = ecs_field(it, velocity_c, 1);
 
     for (int i = 0; i < it->count; i++) {
         p[i].x += v[i].x * GetFrameTime();
@@ -19,7 +19,7 @@ void Move(ecs_iter_t* it) {
 }
 
 void Controller(ecs_iter_t* it) {
-    Velocity* v = ecs_field(it, Velocity, 1);
+    velocity_c* v = ecs_field(it, velocity_c, 1);
     f32 speed = 100;
 
     for (int i = 0; i < it->count; i++) {
@@ -44,11 +44,9 @@ void Controller(ecs_iter_t* it) {
 
 void TransformModuleImport(ecs_world_t* world) {
     ECS_MODULE(world, TransformModule);
-
-    ECS_COMPONENT_DEFINE(world, Position);
-    ECS_COMPONENT_DEFINE(world, Velocity);
-    ECS_SYSTEM_DEFINE(world, Move, EcsOnUpdate, Position, Velocity);
+    ECS_COMPONENT_DEFINE(world, position_c);
+    ECS_COMPONENT_DEFINE(world, velocity_c);
+    ECS_SYSTEM_DEFINE(world, Move, EcsOnUpdate, position_c, velocity_c);
     ECS_TAG_DEFINE(world, _controllable);
-    ECS_SYSTEM_DEFINE(world, Controller, EcsOnUpdate, _controllable,
-                      Velocity);
+    ECS_SYSTEM_DEFINE(world, Controller, EcsOnUpdate, _controllable, velocity_c);
 }
