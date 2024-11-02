@@ -6,7 +6,6 @@
 #include "transform.h"
 
 ECS_COMPONENT_DECLARE(label_c);
-ECS_TAG_DECLARE(textbox_tg);
 
 void label_s(ecs_iter_t* it) {
     label_c* l = ecs_field(it, label_c, 0);
@@ -54,7 +53,6 @@ textbox_e createTextbox(v2 pos) {
     textbox_e e = ecs_new(world);
     ecs_set(world, e, position_c, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {1, renderTextbox});
-    ecs_add_id(world, e, textbox_tg);
     return e;
 }
 
@@ -76,5 +74,4 @@ ecs_entity_t TextboxPush(textbox_e e, const char* text, Texture2D icon) {
 void UIModuleImport(ecs_world_t* world) {
     ECS_MODULE(world, UIModule);
     ECS_COMPONENT_DEFINE(world, label_c);
-    ECS_TAG_DEFINE(world, textbox_tg);
 }

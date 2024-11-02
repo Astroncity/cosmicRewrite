@@ -11,7 +11,6 @@ typedef struct {
 typedef ecs_entity_t textbox_e;
 
 extern ECS_COMPONENT_DECLARE(label_c);
-extern ECS_TAG_DECLARE(textbox_tg);
 
 void UIModuleImport(ecs_world_t* world);
 

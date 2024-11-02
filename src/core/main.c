@@ -85,9 +85,7 @@ int main(void) {
     Texture2D background = genCosmicBackground();
 
     textbox_e testBox = createTextbox((v2){10, 20});
-    ecs_entity_t l1 = TextboxPush(
-        testBox, "test", LoadTexture("assets/images/testIcon.png"));
-    label_c* l1_c = ecs_get_mut(world, l1, label_c);
+    TextboxPush(testBox, "t", LoadTexture("assets/images/testIcon.png"));
 
     ecs_entity_t testContainer = createPlanetContainer(5);
     bool done = true;
@@ -121,7 +119,6 @@ int main(void) {
             scrollPlanet(testContainer, lastDir, false, &done);
         }
         // set label to true false based on if the planet is at the end
-        l1_c->text = done ? "true" : "false";
 
         EndTextureMode();
         BeginDrawing();
