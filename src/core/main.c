@@ -76,16 +76,22 @@ int main(void) {
                 .order_by_callback = compareRenderable});
 
     mouse = malloc(sizeof(v2));
-    const f32 scale = 1.5;
+    // const f32 scale = 1.5;
 
-    createPlanet((v2){screenWidth / 2.0 - PLANET_RES * scale / 2,
+    /*createPlanet((v2){screenWidth / 2.0 - PLANET_RES * scale / 2,
                       screenHeight / 2.0 - PLANET_RES * scale / 2 + 20},
-                 scale);
+                 scale);*/
 
     Texture2D background = genCosmicBackground();
 
     textbox_e testBox = createTextbox((v2){10, 20});
-    TextboxPush(testBox, "test", LoadTexture("assets/images/testIcon.png"));
+    ecs_entity_t l1 = TextboxPush(
+        testBox, "test", LoadTexture("assets/images/testIcon.png"));
+    label_c* l1_c = ecs_get_mut(world, l1, label_c);
+
+    ecs_entity_t testContainer = createPlanetContainer(5);
+    bool done = true;
+    bool lastDir = false;
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();
@@ -102,6 +108,20 @@ int main(void) {
         render(world, q);
         ecs_progress(world, GetFrameTime());
         time += GetFrameTime();
+
+        if (IsKeyPressed(KEY_RIGHT) && done) {
+            scrollPlanet(testContainer, false, &done);
+            lastDir = false;
+        } else if (IsKeyPressed(KEY_LEFT) && done) {
+            scrollPlanet(testContainer, true, &done);
+            lastDir = true;
+        }
+
+        if (!done) {
+            scrollPlanet(testContainer, lastDir, &done);
+        }
+        // set label to true false based on if the planet is at the end
+        l1_c->text = done ? "true" : "false";
 
         EndTextureMode();
         BeginDrawing();

@@ -1,6 +1,7 @@
 #include "planet.h"
 #include "raylib.h"
 #include "state.h"
+#include "transform.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -9,8 +10,10 @@
 #define DARKEN(c, f) ((Color){(c.r * f), (c.g * f), (c.b * f), (c.a)})
 #define DIST(x1, y1, x2, y2) (sqrtf(powf(x1 - x2, 2) + powf(y1 - y2, 2)))
 #define PLANET_NAMES_PATH "assets/planet_names.txt"
+#define ABS(x) ((x) < 0 ? -(x) : (x))
 
 ECS_COMPONENT_DECLARE(Planet);
+ECS_TAG_DECLARE(_scrollablePlanet);
 ECS_COMPONENT_DECLARE(Clickable);
 ECS_COMPONENT_DECLARE(Renderable);
 ECS_SYSTEM_DECLARE(HandleClickables);
@@ -421,12 +424,18 @@ void onPlanetExitHover(ecs_entity_t e) {
     return;
 }
 
+void onPlanetClick(ecs_entity_t e) {
+    const Planet* p = ecs_get(world, e, Planet);
+    printf("Clicked on planet %s\n", p->name);
+}
+
 int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2,
                  const void* b) {
     (void)e1;
     (void)e2;
-    const Planet* p1 = ecs_get(world, *(ecs_entity_t*)a, Planet);
-    const Planet* p2 = ecs_get(world, *(ecs_entity_t*)b, Planet);
+
+    const Planet* p1 = (const Planet*)a;
+    const Planet* p2 = (const Planet*)b;
 
     return p1->order - p2->order;
 }
@@ -478,11 +487,9 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
     strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
     ecs_set(world, e, position_c, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {1, planetRender});
-    ecs_set(world, e, Clickable,
-            {onPlanetHover,
-             onPlanetHover,
-             onPlanetExitHover,
-             {PLANET_RES * scale, PLANET_RES * scale}});
+    // clang-format off
+    ecs_set(world, e, Clickable, {onPlanetClick, onPlanetHover, onPlanetExitHover,{PLANET_RES * scale, PLANET_RES * scale}});
+    // clang-format on
 
     // cleanup
     UnloadImage(noiseSq);
@@ -518,30 +525,111 @@ void HandleClickables(ecs_iter_t* it) {
 }
 
 Texture2D genCosmicBackground() {
+    // clang-format off
     ColorRamp cosmicRamp = createColorRampAuto(
-        (Color[]){
-            (Color){2, 2, 5, 255},    // Deep Space (Almost Black)
-            (Color){8, 8, 20, 255},   // Subtle Nebula Glow (Very Dark Blue)
-            (Color){15, 10, 20, 255}, // Faint Star Glow (Dark Purple)
-            (Color){6, 11, 14, 255},  // Dim Nebula (Muted Violet)
-            (Color){18, 10, 2, 255},  // Faded Crimson Star (Dark Crimson)
-            (Color){2, 2, 9, 255} // Subdued Starlight (Soft Grayish Gold)
-        },
-        6, 255);
+    (Color[]){
+    (Color){2, 2, 5, 255},    
+    (Color){8, 8, 20, 255},   
+    (Color){15, 10, 20, 255}, 
+    (Color){6, 11, 14, 255},  
+    (Color){18, 10, 2, 255},  
+    (Color){2, 2, 9, 255} 
+    },
+    6, 255);
+    // clang-format on
     Image colored = colorPerlin(screenWidth, cosmicRamp, 30);
     return LoadTextureFromImage(colored);
 }
 
-/*void scrollPlanets(ecs_iter_t* it) {
-    const position_c* pos = ecs_field(it, position_c, 0);
-    const Planet* p = ecs_field(it, Planet, 1);
-}*/
+bool reachedMaxScroll(const f32 numScrolls, const usize size,
+                      const bool direction) {
+    if (!direction) {
+        return numScrolls >= size - 1;
+    } else {
+        return numScrolls <= 0;
+    }
+}
+
+v2 lerp_v2(v2 a, v2 b, f32 t) {
+    return (v2){lerp(a.x, b.x, t), lerp(a.y, b.y, t)};
+}
+
+void scrollPlanet(ecs_entity_t container, bool dir, bool* done) {
+    position_c* containerPos = ecs_get_mut(world, container, position_c);
+    f32* numScrolls = &containerPos->x;
+
+    ecs_query_t* q = ecs_query(
+        world, {.terms = {{.id = ecs_childof(container)},
+                          {.id = ecs_id(Planet), .inout = EcsIn},
+                          {.id = ecs_id(position_c), .inout = EcsIn}},
+                .order_by = ecs_id(Planet),
+                .order_by_callback = orderPlanets});
+
+    ecs_iter_t it = ecs_query_iter(world, q);
+
+    const f32 scale = 1.5;
+    const v2 mid = {screenWidth / 2.0 - PLANET_RES * scale / 2,
+                    screenHeight / 2.0 - PLANET_RES * scale / 2 + 20};
+
+    while (ecs_query_next(&it)) {
+        position_c* p = ecs_field(&it, position_c, 2);
+
+        bool max = reachedMaxScroll(*numScrolls, it.count, dir);
+        if (max) {
+            printf("max\n");
+            *done = true;
+            return;
+        }
+
+        for (int i = 0; i < it.count; i++) {
+            p[i].x = lerp(p[i].x, (-*numScrolls + i) * 480 + mid.x,
+                          GetFrameTime() * 3);
+            if (i == it.count - 1) {
+                i32 diff = ABS((i32)p[i].x -
+                               ((i32)(-*numScrolls + i) * 480 + mid.x));
+                if (diff <= 1) {
+                    *done = true;
+                    printf("done\n");
+                    if (dir) {
+                        *numScrolls += 1;
+                    } else {
+                        *numScrolls -= 1;
+                    }
+
+                } else {
+                    *done = false;
+                }
+            }
+        }
+    }
+}
+
+ecs_entity_t createPlanetContainer(i32 count) {
+    ecs_entity_t container = ecs_new(world);
+    ecs_set(world, container, position_c, {0, 0});
+
+    const f32 scale = 1.5;
+    const v2 pos = {screenWidth / 2.0 - PLANET_RES * scale / 2,
+                    screenHeight / 2.0 - PLANET_RES * scale / 2 + 20};
+
+    const f32 offset = screenWidth;
+
+    for (int i = 0; i < count; i++) {
+        ecs_entity_t p =
+            createPlanet((v2){pos.x + i * offset, pos.y}, scale);
+        ecs_add_id(world, p, ecs_id(_scrollablePlanet));
+        ecs_add_pair(world, p, EcsChildOf, container);
+    }
+
+    return container;
+}
 
 void PlanetModuleImport(ecs_world_t* world) {
     ECS_IMPORT(world, TransformModule);
     ECS_MODULE(world, PlanetModule);
 
     ECS_COMPONENT_DEFINE(world, Planet);
+    ECS_TAG_DEFINE(world, _scrollablePlanet);
     ECS_COMPONENT_DEFINE(world, Clickable);
     ECS_COMPONENT_DEFINE(world, Renderable);
     ECS_SYSTEM_DEFINE(world, HandleClickables, EcsOnUpdate,

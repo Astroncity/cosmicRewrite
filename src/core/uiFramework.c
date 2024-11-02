@@ -58,7 +58,7 @@ textbox_e createTextbox(v2 pos) {
     return e;
 }
 
-void TextboxPush(textbox_e e, const char* text, Texture2D icon) {
+ecs_entity_t TextboxPush(textbox_e e, const char* text, Texture2D icon) {
     const position_c* boxPos = ecs_get(world, e, position_c);
     u32 priority = ecs_get(world, e, Renderable)->renderLayer + 1;
 
@@ -69,6 +69,8 @@ void TextboxPush(textbox_e e, const char* text, Texture2D icon) {
     ecs_set(world, label, label_c, {text, {16 + paddingx, paddingy}, icon});
     ecs_set(world, label, position_c, {boxPos->x, boxPos->y});
     ecs_set(world, label, Renderable, {priority, renderLabel});
+
+    return label;
 }
 
 void UIModuleImport(ecs_world_t* world) {

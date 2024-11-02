@@ -1,15 +1,16 @@
 #pragma once
 #include "defs.h"
 #include "flecs.h"
-#include "transform.h"
 
 #define MAX_COLORRAMP_STEPS 10
 #define PLANET_RES 128
 #define ATMOSPHERE_SCALE 1.05
 #define PLANET_NAME_MAXLEN 32
 #define PLANET_NAME_SIZE 22
+#define PLANET_MAX_SCROLLABLE 10
 
 extern ECS_COMPONENT_DECLARE(Planet);
+extern ECS_TAG_DECLARE(_scrollablePlanet);
 extern ECS_COMPONENT_DECLARE(Renderable);
 extern ECS_COMPONENT_DECLARE(Clickable);
 extern ECS_SYSTEM_DECLARE(HandleClickables);
@@ -61,6 +62,8 @@ Color brightenColor(Color c);
 
 Color averageRamp(const ColorRamp* ramp);
 ecs_entity_t createPlanet(v2 pos, f32 scale);
+ecs_entity_t createPlanetContainer(i32 count);
+void scrollPlanet(ecs_entity_t container, bool direction, bool* done);
 
 void PlanetModuleImport(ecs_world_t* world);
 

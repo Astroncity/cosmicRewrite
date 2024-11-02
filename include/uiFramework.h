@@ -16,4 +16,4 @@ extern ECS_TAG_DECLARE(textbox_tg);
 void UIModuleImport(ecs_world_t* world);
 
 textbox_e createTextbox(v2 pos);
-void TextboxPush(textbox_e e, const char* text, Texture2D icon);
+ecs_entity_t TextboxPush(textbox_e e, const char* text, Texture2D icon);
