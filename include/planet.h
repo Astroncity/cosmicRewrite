@@ -21,6 +21,7 @@ typedef struct {
 } ColorRamp;
 
 typedef struct {
+    u32 renderLayer;
     void (*render)(ecs_entity_t e);
 } Renderable;
 
@@ -37,6 +38,7 @@ typedef struct {
     ColorRamp palette;
     Color avg;
     i32 atmosphereOffset;
+    u8 order;
     f32 scale;
     char name[PLANET_NAME_MAXLEN];
 } Planet;

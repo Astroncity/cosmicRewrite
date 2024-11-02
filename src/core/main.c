@@ -1,9 +1,10 @@
 #include "flecs.h"
 #include "planet.h"
-#include "raylib.h"
 #include "state.h"
 #include "transform.h"
+#include "uiFramework.h"
 #include "window.h"
+#include <raylib.h>
 #include <stdio.h>
 
 ecs_world_t* world;
@@ -28,6 +29,16 @@ void render(ecs_world_t* world, ecs_query_t* q) {
     }
 }
 
+int compareRenderable(ecs_entity_t e1, const void* ptr1, ecs_entity_t e2,
+                      const void* ptr2) {
+    (void)e1;
+    (void)e2;
+    const Renderable* r1 = ptr1;
+    const Renderable* r2 = ptr2;
+
+    return r1->renderLayer - r2->renderLayer;
+}
+
 // TEST:
 Texture2D playerTex;
 void renderPlayer(ecs_entity_t e) {
@@ -40,18 +51,19 @@ int main(void) {
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    globalFont = LoadFont("assets/fonts/spaceMono.ttf");
+    globalFont = LoadFontEx("assets/fonts/spaceMono.ttf", 256, 0, 0);
 
     planetTest();
 
     world = ecs_init();
     ECS_IMPORT(world, TransformModule);
     ECS_IMPORT(world, PlanetModule);
+    ECS_IMPORT(world, UIModule);
 
     ecs_entity_t e = ecs_entity(world, {.name = "test"});
     ecs_set(world, e, position_c, {50, 50});
     ecs_set(world, e, velocity_c, {50, 50});
-    ecs_set(world, e, Renderable, {renderPlayer});
+    ecs_set(world, e, Renderable, {2, renderPlayer});
 
     playerTex = LoadTexture("assets/images/player/playerDown.png");
     ecs_add_id(world, e, _controllable);
@@ -59,7 +71,9 @@ int main(void) {
     ecs_query_t* q = ecs_query(
         world, {.terms = {{.id = ecs_id(position_c)},
                           {.id = ecs_id(Renderable), .inout = EcsIn}},
-                .cache_kind = EcsQueryCacheAuto});
+                .cache_kind = EcsQueryCacheAuto,
+                .order_by = ecs_id(Renderable),
+                .order_by_callback = compareRenderable});
 
     mouse = malloc(sizeof(v2));
     const f32 scale = 1.5;
@@ -69,6 +83,9 @@ int main(void) {
                  scale);
 
     Texture2D background = genCosmicBackground();
+
+    textbox_e testBox = createTextbox((v2){10, 20});
+    TextboxPush(testBox, "test", LoadTexture("assets/images/testIcon.png"));
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();

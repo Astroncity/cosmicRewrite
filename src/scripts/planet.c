@@ -15,6 +15,8 @@ ECS_COMPONENT_DECLARE(Clickable);
 ECS_COMPONENT_DECLARE(Renderable);
 ECS_SYSTEM_DECLARE(HandleClickables);
 
+f32 lerp(f32 a, f32 b, f32 t) { return a + t * (b - a); }
+
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max) {
     i32 step = max / len;
     ColorRamp r;
@@ -347,32 +349,60 @@ void planetRender(ecs_entity_t e) {
     drawPlanetName(p->avg, &(v2){pos->x, pos->y}, p->name, p->scale);
 }
 
-char* getPlanetName() {
-    static long pos = 0;
+char** planetNames = NULL;
+
+void loadPlanetNames() {
     FILE* file = fopen(PLANET_NAMES_PATH, "r");
     if (file == NULL) {
         perror("Error reading file");
+        return;
+    }
+
+    planetNames = malloc(sizeof(char*) * 500);
+    if (planetNames == NULL) {
+        perror("Error allocating memory in loadPlanetNames");
+        fclose(file);
+        return;
+    }
+
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    usize i = 0;
+
+    while ((read = getline(&line, &len, file)) != -1) {
+        planetNames[i] = malloc(sizeof(char) * PLANET_NAME_MAXLEN);
+        if (planetNames[i] == NULL) {
+            perror("Error allocating memory in loadPlanetNames");
+            fclose(file);
+            return;
+        }
+
+        strncpy(planetNames[i], line, PLANET_NAME_MAXLEN);
+        i++;
+    }
+
+    fclose(file);
+    free(line);
+}
+
+char* getPlanetName() {
+    if (planetNames == NULL) {
+        loadPlanetNames();
+    }
+
+    if (planetNames == NULL) {
         return NULL;
     }
 
     char* name = malloc(sizeof(char) * PLANET_NAME_MAXLEN);
     if (name == NULL) {
-        perror("Error allocating memory");
-        fclose(file);
+        perror("Error allocating memory in getPlanetName");
         return NULL;
     }
 
-    fseek(file, pos, SEEK_SET); // Go to the last known position
-    if (fgets(name, PLANET_NAME_MAXLEN, file) != NULL) {
-        printf("%s\n", name);
-        pos = ftell(file); // Update position for the next call
-    } else {
-        perror("Error reading name or end of file reached");
-        free(name);
-        name = NULL;
-    }
-
-    fclose(file); // Close the file each time
+    usize i = GetRandomValue(0, 500);
+    strncpy(name, planetNames[i], PLANET_NAME_MAXLEN);
     return name;
 }
 
@@ -391,7 +421,18 @@ void onPlanetExitHover(ecs_entity_t e) {
     return;
 }
 
+int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2,
+                 const void* b) {
+    (void)e1;
+    (void)e2;
+    const Planet* p1 = ecs_get(world, *(ecs_entity_t*)a, Planet);
+    const Planet* p2 = ecs_get(world, *(ecs_entity_t*)b, Planet);
+
+    return p1->order - p2->order;
+}
+
 ecs_entity_t createPlanet(v2 pos, f32 scale) {
+    static u8 order = 0;
     Color* cls = generateHarmonizedColors(brightenColor(getRandomColor()),
                                           6, 25, 1, 1);
     ColorRamp ramp = createColorRampAuto(cls, 6, 255);
@@ -431,11 +472,12 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
              .palette = ramp,
              .atmosphereOffset = atmosphereOffset,
              .avg = atmColor,
-             .scale = scale});
+             .scale = scale,
+             .order = order});
 
     strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
     ecs_set(world, e, position_c, {pos.x, pos.y});
-    ecs_set(world, e, Renderable, {planetRender});
+    ecs_set(world, e, Renderable, {1, planetRender});
     ecs_set(world, e, Clickable,
             {onPlanetHover,
              onPlanetHover,
@@ -451,6 +493,7 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
     UnloadImage(atmC);
     free(cls);
     cls = NULL;
+    order++;
 
     return e;
 }
@@ -488,6 +531,11 @@ Texture2D genCosmicBackground() {
     Image colored = colorPerlin(screenWidth, cosmicRamp, 30);
     return LoadTextureFromImage(colored);
 }
+
+/*void scrollPlanets(ecs_iter_t* it) {
+    const position_c* pos = ecs_field(it, position_c, 0);
+    const Planet* p = ecs_field(it, Planet, 1);
+}*/
 
 void PlanetModuleImport(ecs_world_t* world) {
     ECS_IMPORT(world, TransformModule);
