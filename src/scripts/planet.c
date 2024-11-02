@@ -543,10 +543,11 @@ Texture2D genCosmicBackground() {
 
 bool reachedMaxScroll(const f32 numScrolls, const usize size,
                       const bool direction) {
+    printf("scrolls: %f\n", numScrolls);
     if (!direction) {
-        return numScrolls >= size - 1;
+        return numScrolls >= size - 1; // right
     } else {
-        return numScrolls <= 0;
+        return numScrolls <= 0; // left
     }
 }
 
@@ -554,7 +555,8 @@ v2 lerp_v2(v2 a, v2 b, f32 t) {
     return (v2){lerp(a.x, b.x, t), lerp(a.y, b.y, t)};
 }
 
-void scrollPlanet(ecs_entity_t container, bool dir, bool* done) {
+void scrollPlanet(ecs_entity_t container, bool dir, bool increase,
+                  bool* done) {
     position_c* containerPos = ecs_get_mut(world, container, position_c);
     f32* numScrolls = &containerPos->x;
 
@@ -570,32 +572,34 @@ void scrollPlanet(ecs_entity_t container, bool dir, bool* done) {
     const f32 scale = 1.5;
     const v2 mid = {screenWidth / 2.0 - PLANET_RES * scale / 2,
                     screenHeight / 2.0 - PLANET_RES * scale / 2 + 20};
+    *done = false;
 
     while (ecs_query_next(&it)) {
         position_c* p = ecs_field(&it, position_c, 2);
 
         bool max = reachedMaxScroll(*numScrolls, it.count, dir);
-        if (max) {
+        if (max && done && increase) {
             printf("max\n");
             *done = true;
             return;
         }
+        if (increase && !max) {
+            if (!dir) {
+                *numScrolls += 1;
+            } else {
+                *numScrolls -= 1;
+            }
+        }
 
         for (int i = 0; i < it.count; i++) {
+            f32 diff = ABS((p[i].x - ((-*numScrolls + i) * 480 + mid.x)));
+
             p[i].x = lerp(p[i].x, (-*numScrolls + i) * 480 + mid.x,
                           GetFrameTime() * 3);
             if (i == it.count - 1) {
-                i32 diff = ABS((i32)p[i].x -
-                               ((i32)(-*numScrolls + i) * 480 + mid.x));
                 if (diff <= 1) {
                     *done = true;
                     printf("done\n");
-                    if (dir) {
-                        *numScrolls += 1;
-                    } else {
-                        *numScrolls -= 1;
-                    }
-
                 } else {
                     *done = false;
                 }

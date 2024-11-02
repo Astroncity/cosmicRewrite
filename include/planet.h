@@ -63,7 +63,8 @@ Color brightenColor(Color c);
 Color averageRamp(const ColorRamp* ramp);
 ecs_entity_t createPlanet(v2 pos, f32 scale);
 ecs_entity_t createPlanetContainer(i32 count);
-void scrollPlanet(ecs_entity_t container, bool direction, bool* done);
+void scrollPlanet(ecs_entity_t container, bool direction, bool increase,
+                  bool* done);
 
 void PlanetModuleImport(ecs_world_t* world);
 

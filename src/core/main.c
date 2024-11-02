@@ -110,15 +110,15 @@ int main(void) {
         time += GetFrameTime();
 
         if (IsKeyPressed(KEY_RIGHT) && done) {
-            scrollPlanet(testContainer, false, &done);
+            scrollPlanet(testContainer, false, true, &done);
             lastDir = false;
         } else if (IsKeyPressed(KEY_LEFT) && done) {
-            scrollPlanet(testContainer, true, &done);
+            scrollPlanet(testContainer, true, true, &done);
             lastDir = true;
         }
 
         if (!done) {
-            scrollPlanet(testContainer, lastDir, &done);
+            scrollPlanet(testContainer, lastDir, false, &done);
         }
         // set label to true false based on if the planet is at the end
         l1_c->text = done ? "true" : "false";
