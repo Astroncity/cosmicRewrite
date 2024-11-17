@@ -68,8 +68,8 @@ Image averageImages(Image m1, Image m2) {
         Color c1 = p1[i];
         Color c2 = p2[i];
 
-        Color c = (Color){(c1.r + c2.r) / 2, (c1.g + c2.g) / 2,
-                          (c1.b + c2.b) / 2, (c1.a + c2.a) / 2};
+        Color c = (Color){(c1.r + c2.r) / 2, (c1.g + c2.g) / 2, (c1.b + c2.b) / 2,
+                          (c1.a + c2.a) / 2};
 
         ImageDrawPixel(&ret, x, y, c);
     }
@@ -199,9 +199,8 @@ void RGBtoHSV(Color c, i32* h, i32* s, i32* v) {
     *v = max * 100;
 }
 
-Color* generateHarmonizedColors(Color baseColor, int colorCount,
-                                int hueShift, float saturationFactor,
-                                float brightnessFactor) {
+Color* generateHarmonizedColors(Color baseColor, int colorCount, int hueShift,
+                                float saturationFactor, float brightnessFactor) {
     Color* colors = (Color*)malloc(sizeof(Color) * colorCount);
     i32 hue, saturation, brightness;
 
@@ -310,8 +309,8 @@ void planetTest() {
     RGBtoHSV(a, &h, &s, &v);
     Color b = HSVtoRGB(h, s, v);
 
-    bool passed = (abs(a.r - b.r) < 5) && (abs(a.g - b.g) < 5) &&
-                  (abs(a.b - b.b) < 5);
+    bool passed =
+        (abs(a.r - b.r) < 5) && (abs(a.g - b.g) < 5) && (abs(a.b - b.b) < 5);
 
     printTestRes("RGB to HSV to RGB", passed);
 }
@@ -327,14 +326,12 @@ Color getRandomColor() {
                    GetRandomValue(0, 255), 255};
 }
 
-void drawPlanetName(const Color avg, const v2* pos, const char* name,
-                    f32 scale) {
+void drawPlanetName(const Color avg, const v2* pos, const char* name, f32 scale) {
     const i32 spacing = 1;
     i32 len = MeasureTextEx(globalFont, name, PLANET_NAME_SIZE, spacing).x;
     v2 center = {pos->x + PLANET_RES * scale / 2.0,
                  pos->y + PLANET_RES * scale / 2.0};
-    v2 textPos = {center.x - len / 2.0,
-                  center.y - PLANET_RES * scale / 2.0 - 30};
+    v2 textPos = {center.x - len / 2.0, center.y - PLANET_RES * scale / 2.0 - 30};
 
     DrawTextEx(globalFont, name, textPos, PLANET_NAME_SIZE, spacing, avg);
 }
@@ -429,8 +426,7 @@ void onPlanetClick(ecs_entity_t e) {
     printf("Clicked on planet %s\n", p->name);
 }
 
-int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2,
-                 const void* b) {
+int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2, const void* b) {
     (void)e1;
     (void)e2;
 
@@ -442,8 +438,8 @@ int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2,
 
 ecs_entity_t createPlanet(v2 pos, f32 scale) {
     static u8 order = 0;
-    Color* cls = generateHarmonizedColors(brightenColor(getRandomColor()),
-                                          6, 25, 1, 1);
+    Color* cls =
+        generateHarmonizedColors(brightenColor(getRandomColor()), 6, 25, 1, 1);
     ColorRamp ramp = createColorRampAuto(cls, 6, 255);
 
     Color atmColor = brightenColor(averageRamp(&ramp));
@@ -541,8 +537,7 @@ Texture2D genCosmicBackground() {
     return LoadTextureFromImage(colored);
 }
 
-bool reachedMaxScroll(const f32 numScrolls, const usize size,
-                      const bool direction) {
+bool reachedMaxScroll(const f32 numScrolls, const usize size, const bool direction) {
     printf("scrolls: %f\n", numScrolls);
     if (!direction) {
         return numScrolls >= size - 1; // right
@@ -551,21 +546,18 @@ bool reachedMaxScroll(const f32 numScrolls, const usize size,
     }
 }
 
-v2 lerp_v2(v2 a, v2 b, f32 t) {
-    return (v2){lerp(a.x, b.x, t), lerp(a.y, b.y, t)};
-}
+v2 lerp_v2(v2 a, v2 b, f32 t) { return (v2){lerp(a.x, b.x, t), lerp(a.y, b.y, t)}; }
 
-void scrollPlanet(ecs_entity_t container, bool dir, bool increase,
-                  bool* done) {
+void scrollPlanet(ecs_entity_t container, bool dir, bool increase, bool* done) {
     position_c* containerPos = ecs_get_mut(world, container, position_c);
     f32* numScrolls = &containerPos->x;
 
-    ecs_query_t* q = ecs_query(
-        world, {.terms = {{.id = ecs_childof(container)},
-                          {.id = ecs_id(Planet), .inout = EcsIn},
-                          {.id = ecs_id(position_c), .inout = EcsIn}},
-                .order_by = ecs_id(Planet),
-                .order_by_callback = orderPlanets});
+    ecs_query_t* q =
+        ecs_query(world, {.terms = {{.id = ecs_childof(container)},
+                                    {.id = ecs_id(Planet), .inout = EcsIn},
+                                    {.id = ecs_id(position_c), .inout = EcsIn}},
+                          .order_by = ecs_id(Planet),
+                          .order_by_callback = orderPlanets});
 
     ecs_iter_t it = ecs_query_iter(world, q);
 
@@ -592,9 +584,9 @@ void scrollPlanet(ecs_entity_t container, bool dir, bool increase,
         }
 
         for (int i = 0; i < it.count; i++) {
-            f32 diff = ABS((p[i].x - ((-*numScrolls + i) * 480 + mid.x)));
+            f32 diff = ABS((p[i].x - ((-*numScrolls + i) * screenWidth + mid.x)));
 
-            p[i].x = lerp(p[i].x, (-*numScrolls + i) * 480 + mid.x,
+            p[i].x = lerp(p[i].x, (-*numScrolls + i) * screenWidth + mid.x,
                           GetFrameTime() * 3);
             if (i == it.count - 1) {
                 if (diff <= 1) {
@@ -619,8 +611,7 @@ ecs_entity_t createPlanetContainer(i32 count) {
     const f32 offset = screenWidth;
 
     for (int i = 0; i < count; i++) {
-        ecs_entity_t p =
-            createPlanet((v2){pos.x + i * offset, pos.y}, scale);
+        ecs_entity_t p = createPlanet((v2){pos.x + i * offset, pos.y}, scale);
         ecs_add_id(world, p, ecs_id(_scrollablePlanet));
         ecs_add_pair(world, p, EcsChildOf, container);
     }

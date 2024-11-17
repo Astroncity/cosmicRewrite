@@ -13,8 +13,15 @@ v2* mouse;
 f32 time;
 Font globalFont;
 
-const u32 screenWidth = 480;
-const u32 screenHeight = 270;
+/* const u32 screenWidth = 480; */
+/* const u32 screenHeight = 270; */
+
+const u32 screenWidth = 640;
+const u32 screenHeight = 360;
+
+typedef struct {
+    usize size;
+} textbox_c;
 
 void render(ecs_world_t* world, ecs_query_t* q) {
 
@@ -51,7 +58,7 @@ int main(void) {
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    globalFont = LoadFontEx("assets/fonts/spaceMono.ttf", 256, 0, 0);
+    globalFont = LoadFontEx("assets/fonts/spaceMono.ttf", 512, 0, 0);
 
     planetTest();
 
@@ -60,20 +67,20 @@ int main(void) {
     ECS_IMPORT(world, PlanetModule);
     ECS_IMPORT(world, UIModule);
 
-    ecs_entity_t e = ecs_entity(world, {.name = "test"});
+    /*ecs_entity_t e = ecs_entity(world, {.name = "test"});
     ecs_set(world, e, position_c, {50, 50});
     ecs_set(world, e, velocity_c, {50, 50});
     ecs_set(world, e, Renderable, {2, renderPlayer});
-
+    */
     playerTex = LoadTexture("assets/images/player/playerDown.png");
-    ecs_add_id(world, e, _controllable);
+    // ecs_add_id(world, e, _controllable);
 
-    ecs_query_t* q = ecs_query(
-        world, {.terms = {{.id = ecs_id(position_c)},
-                          {.id = ecs_id(Renderable), .inout = EcsIn}},
-                .cache_kind = EcsQueryCacheAuto,
-                .order_by = ecs_id(Renderable),
-                .order_by_callback = compareRenderable});
+    ecs_query_t* q =
+        ecs_query(world, {.terms = {{.id = ecs_id(position_c)},
+                                    {.id = ecs_id(Renderable), .inout = EcsIn}},
+                          .cache_kind = EcsQueryCacheAuto,
+                          .order_by = ecs_id(Renderable),
+                          .order_by_callback = compareRenderable});
 
     mouse = malloc(sizeof(v2));
     // const f32 scale = 1.5;
@@ -84,8 +91,12 @@ int main(void) {
 
     Texture2D background = genCosmicBackground();
 
-    textbox_e testBox = createTextbox((v2){10, 20});
-    TextboxPush(testBox, "t", LoadTexture("assets/images/testIcon.png"));
+    textbox_e testBox = createTextbox("Planet Information", (v2){10, 20});
+    const char* pthSm = "assets/images/testIconSmall.png";
+
+    TextboxPush(testBox, "DANGER", 16, LoadTexture(pthSm));
+    TextboxPush(testBox, "ATMOSPHERE", 16, LoadTexture(pthSm));
+    TextboxPush(testBox, "TERRAIN", 16, LoadTexture(pthSm));
 
     ecs_entity_t testContainer = createPlanetContainer(5);
     bool done = true;
@@ -118,7 +129,6 @@ int main(void) {
         if (!done) {
             scrollPlanet(testContainer, lastDir, false, &done);
         }
-        // set label to true false based on if the planet is at the end
 
         EndTextureMode();
         BeginDrawing();

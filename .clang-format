@@ -1,6 +1,6 @@
 IndentWidth: 4
 PointerAlignment: Left
 AllowShortIfStatementsOnASingleLine: true
-ColumnLimit: 76
+ColumnLimit: 85
 BinPackArguments: true
 BinPackParameters: true

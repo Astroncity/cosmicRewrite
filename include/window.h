@@ -2,8 +2,6 @@
 
 #include "defs.h"
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MAG(v) sqrt(v.x* v.x + v.y * v.y)
 
 v2 getScreenMousePos(v2* mouse, f32 scale, i32 sw, i32 sh);

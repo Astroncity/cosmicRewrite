@@ -2,8 +2,7 @@
 #include "state.h"
 
 v2 v2Clamp(v2 vec, v2 min, v2 max) {
-    return (v2){MIN(MAX(vec.x, min.x), max.x),
-                MIN(MAX(vec.y, min.y), max.y)};
+    return (v2){MIN(MAX(vec.x, min.x), max.x), MIN(MAX(vec.y, min.y), max.y)};
 }
 
 v2 getScreenMousePos(v2* mouse, f32 scale, i32 sw, i32 sh) {

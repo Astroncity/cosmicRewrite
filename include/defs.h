@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 typedef float f32;
 typedef double f64;
 typedef uint8_t u8;
