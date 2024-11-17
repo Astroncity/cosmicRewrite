@@ -11,7 +11,6 @@
 
 extern ECS_COMPONENT_DECLARE(Planet);
 extern ECS_TAG_DECLARE(_scrollablePlanet);
-extern ECS_COMPONENT_DECLARE(Renderable);
 extern ECS_COMPONENT_DECLARE(Clickable);
 extern ECS_SYSTEM_DECLARE(HandleClickables);
 
@@ -20,11 +19,6 @@ typedef struct {
     Color colors[MAX_COLORRAMP_STEPS];
     i32 steps[MAX_COLORRAMP_STEPS];
 } ColorRamp;
-
-typedef struct {
-    u32 renderLayer;
-    void (*render)(ecs_entity_t e);
-} Renderable;
 
 typedef struct {
     void (*onClick)(ecs_entity_t e);
@@ -50,9 +44,8 @@ Image colorPerlin(usize res, ColorRamp ramp, f32 scale);
 
 Image dither(i32 circleOffsetx, i32 circleOffsety, Image m);
 Image cropToCircle(Image img);
-Color* generateHarmonizedColors(Color baseColor, i32 colorCount,
-                                i32 hueShift, f32 saturationFactor,
-                                f32 brightnessFactor);
+Color* generateHarmonizedColors(Color baseColor, i32 colorCount, i32 hueShift,
+                                f32 saturationFactor, f32 brightnessFactor);
 
 void planetTest();
 Color getRandomColor();
@@ -63,8 +56,7 @@ Color brightenColor(Color c);
 Color averageRamp(const ColorRamp* ramp);
 ecs_entity_t createPlanet(v2 pos, f32 scale);
 ecs_entity_t createPlanetContainer(i32 count);
-void scrollPlanet(ecs_entity_t container, bool direction, bool increase,
-                  bool* done);
+void scrollPlanet(ecs_entity_t container, bool direction, bool increase, bool* done);
 
 void PlanetModuleImport(ecs_world_t* world);
 

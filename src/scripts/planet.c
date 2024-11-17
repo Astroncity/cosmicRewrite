@@ -1,5 +1,6 @@
 #include "planet.h"
 #include "raylib.h"
+#include "render.h"
 #include "state.h"
 #include "transform.h"
 #include <assert.h>
@@ -15,7 +16,6 @@
 ECS_COMPONENT_DECLARE(Planet);
 ECS_TAG_DECLARE(_scrollablePlanet);
 ECS_COMPONENT_DECLARE(Clickable);
-ECS_COMPONENT_DECLARE(Renderable);
 ECS_SYSTEM_DECLARE(HandleClickables);
 
 f32 lerp(f32 a, f32 b, f32 t) { return a + t * (b - a); }
@@ -626,7 +626,6 @@ void PlanetModuleImport(ecs_world_t* world) {
     ECS_COMPONENT_DEFINE(world, Planet);
     ECS_TAG_DEFINE(world, _scrollablePlanet);
     ECS_COMPONENT_DEFINE(world, Clickable);
-    ECS_COMPONENT_DEFINE(world, Renderable);
     ECS_SYSTEM_DEFINE(world, HandleClickables, EcsOnUpdate,
                       transform.module.position_c, Clickable);
 }

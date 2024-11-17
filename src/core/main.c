@@ -1,5 +1,6 @@
 #include "flecs.h"
 #include "planet.h"
+#include "render.h"
 #include "state.h"
 #include "transform.h"
 #include "uiFramework.h"
@@ -22,19 +23,6 @@ const u32 screenHeight = 360;
 typedef struct {
     usize size;
 } textbox_c;
-
-void render(ecs_world_t* world, ecs_query_t* q) {
-
-    ecs_iter_t it = ecs_query_iter(world, q);
-
-    while (ecs_query_next(&it)) {
-        const Renderable* s = ecs_field(&it, Renderable, 1);
-
-        for (int i = 0; i < it.count; i++) {
-            s[i].render(it.entities[i]);
-        }
-    }
-}
 
 int compareRenderable(ecs_entity_t e1, const void* ptr1, ecs_entity_t e2,
                       const void* ptr2) {
@@ -64,31 +52,12 @@ int main(void) {
 
     world = ecs_init();
     ECS_IMPORT(world, TransformModule);
+    ECS_IMPORT(world, RendererModule);
     ECS_IMPORT(world, PlanetModule);
     ECS_IMPORT(world, UIModule);
-
-    /*ecs_entity_t e = ecs_entity(world, {.name = "test"});
-    ecs_set(world, e, position_c, {50, 50});
-    ecs_set(world, e, velocity_c, {50, 50});
-    ecs_set(world, e, Renderable, {2, renderPlayer});
-    */
     playerTex = LoadTexture("assets/images/player/playerDown.png");
-    // ecs_add_id(world, e, _controllable);
-
-    ecs_query_t* q =
-        ecs_query(world, {.terms = {{.id = ecs_id(position_c)},
-                                    {.id = ecs_id(Renderable), .inout = EcsIn}},
-                          .cache_kind = EcsQueryCacheAuto,
-                          .order_by = ecs_id(Renderable),
-                          .order_by_callback = compareRenderable});
 
     mouse = malloc(sizeof(v2));
-    // const f32 scale = 1.5;
-
-    /*createPlanet((v2){screenWidth / 2.0 - PLANET_RES * scale / 2,
-                      screenHeight / 2.0 - PLANET_RES * scale / 2 + 20},
-                 scale);*/
-
     Texture2D background = genCosmicBackground();
 
     textbox_e testBox = createTextbox("Planet Information", (v2){10, 20});
@@ -114,7 +83,6 @@ int main(void) {
         ClearBackground(BLACK);
         DrawTextureEx(background, (v2){0, 0}, 0, 1, WHITE);
 
-        render(world, q);
         ecs_progress(world, GetFrameTime());
         time += GetFrameTime();
 
