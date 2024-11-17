@@ -20,20 +20,6 @@ Font globalFont;
 const u32 screenWidth = 640;
 const u32 screenHeight = 360;
 
-typedef struct {
-    usize size;
-} textbox_c;
-
-int compareRenderable(ecs_entity_t e1, const void* ptr1, ecs_entity_t e2,
-                      const void* ptr2) {
-    (void)e1;
-    (void)e2;
-    const Renderable* r1 = ptr1;
-    const Renderable* r2 = ptr2;
-
-    return r1->renderLayer - r2->renderLayer;
-}
-
 // TEST:
 Texture2D playerTex;
 void renderPlayer(ecs_entity_t e) {
