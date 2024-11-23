@@ -29,6 +29,7 @@ typedef struct {
 
 typedef struct {
     Texture2D land;
+    Texture2D background;
     Texture2D atmosphere;
     ColorRamp palette;
     Color avg;
@@ -38,9 +39,11 @@ typedef struct {
     char name[PLANET_NAME_MAXLEN];
 } Planet;
 
+enum NoiseType { PERLIN, CELLULAR };
+
 ColorRamp createColorRamp(i32* steps, Color* colors, usize len);
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max);
-Image colorPerlin(usize res, ColorRamp ramp, f32 scale);
+Image colorPerlin(enum NoiseType type, usize res, ColorRamp ramp, f32 scale);
 
 Image dither(i32 circleOffsetx, i32 circleOffsety, Image m);
 Image cropToCircle(Image img);

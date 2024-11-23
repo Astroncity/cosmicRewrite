@@ -28,7 +28,7 @@ void drawScaledWindow(RenderTexture2D target, f32 sw, f32 sh, f32 scale) {
 
 void setWindowFlags(void) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    SetTraceLogLevel(LOG_WARNING);
+    SetTraceLogLevel(LOG_ALL);
     InitWindow(screenWidth, screenHeight, "Planet Generation Test");
     InitAudioDevice();
     SetMasterVolume(1);

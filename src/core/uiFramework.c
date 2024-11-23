@@ -11,8 +11,20 @@ typedef struct {
     usize size;
     i32 maxLen;
     i32 minLen;
+    v2 endCon;
 } textbox_c;
 ECS_COMPONENT_DECLARE(textbox_c);
+
+void drawConnectiveLine(const v2 start, const v2 end) {
+    const v2 dist = (v2){end.x - start.x, end.y - start.y};
+    const f32 width = 1;
+    const Color cl = WHITE;
+
+    DrawLineEx(start, (v2){start.x + dist.x / 2, start.y}, width, cl);
+    DrawLineEx((v2){start.x + dist.x / 2, start.y},
+               (v2){start.x + dist.x / 2, end.y}, width, cl);
+    DrawLineEx((v2){start.x + dist.x / 2, end.y}, (v2){end.x, end.y}, width, cl);
+}
 
 void renderLabel(ecs_entity_t e) {
     const label_c* l = ecs_get(world, e, label_c);
@@ -39,12 +51,17 @@ void renderTextbox(ecs_entity_t e) {
 
     DrawRectangleRounded((Rect){pos->x, pos->y, width, 20 * box->size}, 0.3, 2,
                          GRUV_DARK2);
+
+    if (box->endCon.x != -1) {
+        drawConnectiveLine((v2){pos->x + box->maxLen, pos->y + 20}, box->endCon);
+    }
 }
-textbox_e createTextbox(const char* title, v2 pos) {
+textbox_e createTextbox(const char* title, v2 pos, v2 connectionPoint) {
     textbox_e e = ecs_new(world);
     ecs_set(world, e, position_c, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {5, renderTextbox});
-    ecs_set(world, e, textbox_c, {.size = 0, .maxLen = 0, .minLen = 100});
+    ecs_set(world, e, textbox_c,
+            {.size = 0, .maxLen = 0, .minLen = 100, .endCon = connectionPoint});
 
     TextboxPush(e, title, 20, (Texture2D){});
     TextboxPush(e, "", 20, (Texture2D){});

@@ -18,6 +18,8 @@ ECS_TAG_DECLARE(_scrollablePlanet);
 ECS_COMPONENT_DECLARE(Clickable);
 ECS_SYSTEM_DECLARE(HandleClickables);
 
+Shader planetBloom;
+
 f32 lerp(f32 a, f32 b, f32 t) { return a + t * (b - a); }
 
 ColorRamp createColorRampAuto(Color* colors, usize len, i32 max) {
@@ -123,7 +125,7 @@ Image dither(i32 circleOffsetx, i32 circleOffsety, Image m) {
     return ret;
 }
 
-Color HSVtoRGB(int h, int s, int v) {
+Color HSVtoRGB(i32 h, i32 s, i32 v) {
     f32 r, g, b;
     f32 f, p, q, t;
 
@@ -199,7 +201,7 @@ void RGBtoHSV(Color c, i32* h, i32* s, i32* v) {
     *v = max * 100;
 }
 
-Color* generateHarmonizedColors(Color baseColor, int colorCount, int hueShift,
+Color* generateHarmonizedColors(Color baseColor, i32 colorCount, i32 hueShift,
                                 float saturationFactor, float brightnessFactor) {
     Color* colors = (Color*)malloc(sizeof(Color) * colorCount);
     i32 hue, saturation, brightness;
@@ -208,10 +210,10 @@ Color* generateHarmonizedColors(Color baseColor, int colorCount, int hueShift,
     RGBtoHSV(baseColor, &hue, &saturation, &brightness);
 
     // Generate colors by adjusting the hue, saturation, and brightness
-    for (int i = 0; i < colorCount; i++) {
-        int newHue = (hue + i * hueShift) % 360;
-        int newSaturation = (int)(saturation * saturationFactor);
-        int newBrightness = (int)(brightness * brightnessFactor);
+    for (i32 i = 0; i < colorCount; i++) {
+        i32 newHue = (hue + i * hueShift) % 360;
+        i32 newSaturation = (int)(saturation * saturationFactor);
+        i32 newBrightness = (int)(brightness * brightnessFactor);
 
         // Store the new color in the array
         colors[i] = HSVtoRGB(newHue, newSaturation, newBrightness);
@@ -233,7 +235,7 @@ Color* generateHarmonizedColors(Color baseColor, int colorCount, int hueShift,
  * @return An Image object generated based on the provided resolution, color
  * ramp, and scale.
  */
-Image colorPerlin(usize res, ColorRamp ramp, f32 customScale) {
+Image colorPerlin(enum NoiseType type, usize res, ColorRamp ramp, f32 customScale) {
     i32 s = GetRandomValue(-100, 100);
     i32 s2 = GetRandomValue(-100, 100);
 
@@ -244,9 +246,15 @@ Image colorPerlin(usize res, ColorRamp ramp, f32 customScale) {
         scaleBase = customScale;
     }
 
-    Image noise1 = GenImagePerlinNoise(res, res, s, s * 2, scaleBase);
-    Image noise2 = GenImagePerlinNoise(res, res, s2, s2 * 2, scaleBase * 2);
+    Image noise1, noise2;
 
+    if (type == PERLIN) {
+        noise1 = GenImagePerlinNoise(res, res, s, s * 2, scaleBase);
+        noise2 = GenImagePerlinNoise(res, res, s2, s2 * 2, scaleBase * 2);
+    } else {
+        noise1 = GenImageCellular(res, res, scaleBase);
+        noise2 = GenImageCellular(res, res, scaleBase * 2);
+    }
     Image noise = averageImages(noise1, noise2);
 
     Color* noiseCl = LoadImageColors(noise);
@@ -345,6 +353,7 @@ void planetRender(ecs_entity_t e) {
                   (v2){pos->x - p->atmosphereOffset * (p->scale / 2.0),
                        pos->y - p->atmosphereOffset * (p->scale / 2.0)},
                   0, p->scale, WHITE);
+
     drawColorRamp(&p->palette);
     drawPlanetName(p->avg, &(v2){pos->x, pos->y}, p->name, p->scale);
 }
@@ -423,10 +432,11 @@ void onPlanetExitHover(ecs_entity_t e) {
 
 void onPlanetClick(ecs_entity_t e) {
     const Planet* p = ecs_get(world, e, Planet);
-    printf("Clicked on planet %s\n", p->name);
+    printf("Clicked on planet %s which is entity %ld \n", p->name, e);
+    selectedPlanet_p = p;
 }
 
-int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2, const void* b) {
+i32 orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2, const void* b) {
     (void)e1;
     (void)e2;
 
@@ -434,6 +444,18 @@ int orderPlanets(ecs_entity_t e1, const void* a, ecs_entity_t e2, const void* b)
     const Planet* p2 = (const Planet*)b;
 
     return p1->order - p2->order;
+}
+
+Texture2D createPlanetBackground(Planet p) {
+    Image l1 = colorPerlin(PERLIN, 640, p.palette, 20);
+    Image l2 = colorPerlin(CELLULAR, 640, p.palette, 20);
+    Image l3 = averageImages(l1, l2);
+
+    Texture2D final = LoadTextureFromImage(l3);
+    UnloadImage(l1);
+    UnloadImage(l2);
+    UnloadImage(l3);
+    return final;
 }
 
 ecs_entity_t createPlanet(v2 pos, f32 scale) {
@@ -446,7 +468,7 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
     atmColor.a = GetRandomValue(100, 200); // atmosphere density
 
     // terrain noise
-    Image noiseSq = colorPerlin(PLANET_RES, ramp, -1);
+    Image noiseSq = colorPerlin(PERLIN, PLANET_RES, ramp, -1);
     Image noiseShadow = dither(0, -PLANET_RES / 8, noiseSq);
     Image noise = cropToCircle(noiseShadow);
     Texture2D tex = LoadTextureFromImage(noise);
@@ -481,6 +503,8 @@ ecs_entity_t createPlanet(v2 pos, f32 scale) {
              .order = order});
 
     strncpy(ecs_get_mut(world, e, Planet)->name, name, PLANET_NAME_MAXLEN);
+    ecs_get_mut(world, e, Planet)->background =
+        createPlanetBackground(*ecs_get(world, e, Planet));
     ecs_set(world, e, position_c, {pos.x, pos.y});
     ecs_set(world, e, Renderable, {1, planetRender});
     // clang-format off
@@ -505,7 +529,7 @@ void HandleClickables(ecs_iter_t* it) {
     const Clickable* c = ecs_field(it, Clickable, 1);
     const position_c* p = ecs_field(it, position_c, 0);
 
-    for (int i = 0; i < it->count; i++) {
+    for (i32 i = 0; i < it->count; i++) {
         Rect box = {p[i].x, p[i].y, c[i].hitbox.x, c[i].hitbox.y};
 
         if (CheckCollisionPointRec(*mouse, box)) {
@@ -533,7 +557,7 @@ Texture2D genCosmicBackground() {
     },
     6, 255);
     // clang-format on
-    Image colored = colorPerlin(screenWidth, cosmicRamp, 30);
+    Image colored = colorPerlin(PERLIN, screenWidth, cosmicRamp, 30);
     return LoadTextureFromImage(colored);
 }
 
@@ -583,7 +607,7 @@ void scrollPlanet(ecs_entity_t container, bool dir, bool increase, bool* done) {
             }
         }
 
-        for (int i = 0; i < it.count; i++) {
+        for (i32 i = 0; i < it.count; i++) {
             f32 diff = ABS((p[i].x - ((-*numScrolls + i) * screenWidth + mid.x)));
 
             p[i].x = lerp(p[i].x, (-*numScrolls + i) * screenWidth + mid.x,
@@ -610,7 +634,7 @@ ecs_entity_t createPlanetContainer(i32 count) {
 
     const f32 offset = screenWidth;
 
-    for (int i = 0; i < count; i++) {
+    for (i32 i = 0; i < count; i++) {
         ecs_entity_t p = createPlanet((v2){pos.x + i * offset, pos.y}, scale);
         ecs_add_id(world, p, ecs_id(_scrollablePlanet));
         ecs_add_pair(world, p, EcsChildOf, container);

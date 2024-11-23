@@ -13,6 +13,7 @@ ecs_world_t* world;
 v2* mouse;
 f32 time;
 Font globalFont;
+const Planet* selectedPlanet_p;
 
 /* const u32 screenWidth = 480; */
 /* const u32 screenHeight = 270; */
@@ -32,7 +33,7 @@ int main(void) {
     RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 
-    globalFont = LoadFontEx("assets/fonts/spaceMono.ttf", 512, 0, 0);
+    globalFont = LoadFontEx("assets/fonts/spaceMono.ttf", 64, 0, 0);
 
     planetTest();
 
@@ -46,16 +47,19 @@ int main(void) {
     mouse = malloc(sizeof(v2));
     Texture2D background = genCosmicBackground();
 
-    textbox_e testBox = createTextbox("Planet Information", (v2){10, 20});
+    textbox_e testBox =
+        createTextbox("Planet Information", (v2){10, 20},
+                      (v2){screenWidth / 2.0 - PLANET_RES * 1.5 / 2.0, 200});
     const char* pthSm = "assets/images/testIconSmall.png";
 
     TextboxPush(testBox, "DANGER", 16, LoadTexture(pthSm));
     TextboxPush(testBox, "ATMOSPHERE", 16, LoadTexture(pthSm));
     TextboxPush(testBox, "TERRAIN", 16, LoadTexture(pthSm));
 
-    ecs_entity_t testContainer = createPlanetContainer(5);
+    ecs_entity_t testContainer = createPlanetContainer(2);
     bool done = true;
     bool lastDir = false;
+    Texture2D lastText;
 
     while (!WindowShouldClose()) {
         f32 scale = getWindowScale();
@@ -67,7 +71,16 @@ int main(void) {
 
         BeginTextureMode(target);
         ClearBackground(BLACK);
-        DrawTextureEx(background, (v2){0, 0}, 0, 1, WHITE);
+
+        if (selectedPlanet_p == NULL) {
+            DrawTextureEx(background, (v2){0, 0}, 0, 1, WHITE);
+        } else {
+            if (lastText.id != selectedPlanet_p->background.id) {
+                printf("changed\n");
+            }
+            DrawTextureEx(selectedPlanet_p->background, (v2){0, 0}, 0, 1, WHITE);
+            lastText = selectedPlanet_p->background;
+        }
 
         ecs_progress(world, GetFrameTime());
         time += GetFrameTime();

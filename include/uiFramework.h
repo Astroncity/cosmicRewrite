@@ -15,7 +15,9 @@ extern ECS_COMPONENT_DECLARE(label_c);
 
 void UIModuleImport(ecs_world_t* world);
 
-textbox_e createTextbox(const char* title, v2 pos);
+textbox_e createTextbox(const char* title, v2 pos, v2 connectionPoint);
 ecs_entity_t TextboxPush(textbox_e e, const char* text, f32 fontSize,
                          Texture2D icon);
 void basicButtonRender(ecs_entity_t e);
+
+void drawConnectiveLine(const v2 start, const v2 end);
